@@ -62,7 +62,6 @@ echo ""
 echo -e "${BLUE}📦 Setting up dependencies...${NC}"
 rm -f go.sum
 
-# Clean module cache if needed
 echo "Downloading dependencies..."
 if ! go mod download 2>&1; then
     echo -e "${YELLOW}⚠️  Dependency error detected, cleaning cache...${NC}"
@@ -70,13 +69,29 @@ if ! go mod download 2>&1; then
     go mod download
 fi
 
-# Tidy modules
 echo "Tidying modules..."
 go mod tidy
 
 echo -e "${GREEN}✓ Dependencies ready${NC}"
 
-# Build application
+# Build frontend
+echo ""
+echo -e "${BLUE}🎨 Building frontend...${NC}"
+
+if command -v npm &> /dev/null; then
+    echo "Installing frontend dependencies..."
+    npm install
+    
+    echo "Building frontend..."
+    npm run build
+    
+    echo -e "${GREEN}✓ Frontend built successfully${NC}"
+else
+    echo -e "${YELLOW}⚠️  npm tidak ditemukan. Skip frontend build.${NC}"
+    echo -e "${YELLOW}   Install Node.js dan jalankan: npm run build${NC}"
+fi
+
+# Build Go application
 echo ""
 echo -e "${BLUE}🔨 Building application...${NC}"
 go build -ldflags="-w -s" -o cute-finance ./cmd/server
