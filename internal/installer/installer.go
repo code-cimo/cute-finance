@@ -2,6 +2,7 @@ package installer
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -20,14 +21,21 @@ const (
 	colorCyan   = "\033[36m"
 )
 
-func Run() {
+// Config holds the application configuration
+type Config struct {
+	Port    int    `json:"port"`
+	DataDir string `json:"data_dir"`
+}
+
+// Run executes the interactive TUI installer
+func Run(dataDir string) {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Printf("%s", colorCyan)
 	fmt.Println(`
    ____      _   _   ___                  _ _____ _   _  ___ _____ ____  
   / ___|__ _| |_| | |_ _|_ __   __ _  ___| | ____| \ | |/ _ \_   _/ ___| 
- | |   / _\`| __| |  | || '_ \ / _\` |/ _ \ |  _| |  \| | | | || | \___ \ 
+ | |   / _` + "`" + `| __| |  | || '_ \ / _` + "`" + ` |/ _ \ |  _| |  \| | | | || | \___ \ 
  | |__| (_| | |_| |  | || | | | (_| |  __/ | |___| |\  | |_| || |  ___) |
   \____\__,_|\__|_| |___|_| |_|\__, |\___|_|_____|_| \_|\___/ |_| |____/ 
                                 |___/                                     
@@ -43,8 +51,10 @@ func Run() {
 	
 	port := 8080
 	if portStr != "" {
-		if p, err := strconv.Atoi(portStr); err == nil {
+		if p, err := strconv.Atoi(portStr); err == nil && p > 0 && p < 65536 {
 			port = p
+		} else {
+			fmt.Printf("%s⚠ Invalid port, using default: 8080%s\n", colorYellow, colorReset)
 		}
 	}
 	fmt.Printf("%s✓ Port set to: %d%s\n\n", colorGreen, port, colorReset)
@@ -52,12 +62,11 @@ func Run() {
 	// Step 2: Dependency Check
 	fmt.Printf("%s[2/4] Dependency & Environment Check%s\n", colorBlue, colorReset)
 	
-	// Check data directory
-	dataDir := "./data"
-	if err := os.MkdirAll(dataDir, 0755); err == nil {
-		fmt.Printf("%s✓%s Data directory %s is writable\n", colorGreen, colorReset, dataDir)
+	// Ensure data directory exists
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		fmt.Printf("%s✗ Failed to create data directory %s: %v%s\n", colorRed, dataDir, err, colorReset)
 	} else {
-		fmt.Printf("%s✗%s Data directory %s is NOT writable: %v\n", colorRed, colorReset, dataDir, err)
+		fmt.Printf("%s✓%s Data directory %s is writable\n", colorGreen, colorReset, dataDir)
 	}
 
 	// Check Tailscale
@@ -114,22 +123,32 @@ func Run() {
 	createService = strings.TrimSpace(strings.ToLower(createService))
 
 	if createService == "y" || createService == "yes" {
-		createSystemdService(port)
+		createSystemdService(port, dataDir)
 	}
 
 	// Save config
 	saveConfig(port, dataDir)
 
 	fmt.Printf("\n%s✅ Installation Complete!%s\n", colorGreen, colorReset)
+	fmt.Printf("\n%sConfiguration saved to: %s/config.json%s\n", colorCyan, dataDir, colorReset)
 	fmt.Printf("\n%sNext steps:%s\n", colorYellow, colorReset)
-	fmt.Println("1. Build the application: go build -o cute-finance ./cmd/server")
-	fmt.Println("2. Run the server: ./cute-finance")
-	fmt.Printf("3. Access at: %shttp://localhost:%d%s\n", colorCyan, port, colorReset)
-	fmt.Println("4. (Optional) Start systemd service: sudo systemctl start cutefinance")
+	fmt.Printf("1. Run the server: %s./cute-finance -data %s%s\n", colorCyan, dataDir, colorReset)
+	fmt.Printf("2. Access at: %shttp://localhost:%d%s\n", colorCyan, port, colorReset)
+	fmt.Println("3. (Optional) Start systemd service: sudo systemctl start cutefinance")
 	fmt.Println()
 }
 
-func createSystemdService(port int) {
+func createSystemdService(port int, dataDir string) {
+	absDataDir, err := filepath.Abs(dataDir)
+	if err != nil {
+		absDataDir = dataDir
+	}
+
+	execPath, err := os.Executable()
+	if err != nil {
+		execPath = "./cute-finance"
+	}
+
 	serviceContent := fmt.Sprintf(`[Unit]
 Description=CuteFinance PWA - Personal Finance Manager
 After=network.target
@@ -138,13 +157,13 @@ After=network.target
 Type=simple
 User=%s
 WorkingDirectory=%s
-ExecStart=%s/cute-finance -port %d -data %s/data
+ExecStart=%s -port %d -data %s
 Restart=always
 RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
-`, os.Getenv("USER"), getWorkingDir(), getWorkingDir(), port, getWorkingDir())
+`, os.Getenv("USER"), filepath.Dir(execPath), execPath, port, absDataDir)
 
 	servicePath := "/etc/systemd/system/cutefinance.service"
 	
@@ -192,23 +211,22 @@ WantedBy=multi-user.target
 
 func saveConfig(port int, dataDir string) {
 	configPath := filepath.Join(dataDir, "config.json")
-	configContent := fmt.Sprintf(`{
-  "port": %d,
-  "data_dir": "%s"
-}`, port, dataDir)
+	
+	config := Config{
+		Port:    port,
+		DataDir: dataDir,
+	}
 
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	configJSON, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		fmt.Printf("%s✗ Failed to marshal config: %v%s\n", colorRed, err, colorReset)
+		return
+	}
+
+	if err := os.WriteFile(configPath, configJSON, 0644); err != nil {
 		fmt.Printf("%s✗ Failed to save config: %v%s\n", colorRed, err, colorReset)
 		return
 	}
 
 	fmt.Printf("%s✓ Configuration saved to %s%s\n", colorGreen, configPath, colorReset)
-}
-
-func getWorkingDir() string {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "."
-	}
-	return dir
 }

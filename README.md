@@ -35,29 +35,42 @@ Aplikasi manajemen keuangan pribadi berbasis PWA dengan backend **Go (Golang)** 
 
 ## 🚀 Quick Start
 
-**📖 Lihat [QUICKSTART.md](QUICKSTART.md) untuk panduan 3-step setup!**
+**📖 Lihat [QUICKSTART.md](QUICKSTART.md) untuk panduan lengkap!**
 
 ### Prasyarat
 - Go 1.22+
-- Node.js 18+ (untuk build frontend)
 - Git
 
-### 1. Clone & Build
+### 1. Clone & Install
 
 ```bash
 git clone https://github.com/yourusername/cutefinance-pwa.git
 cd cutefinance-pwa
 
-# Setup dependencies (generate go.sum)
-chmod +x setup.sh
-./setup.sh
-
-# Build dengan Make
-make build
-
-# Atau manual
-go build -o cute-finance ./cmd/server
+# Jalankan installer (akan tanya port & setup)
+chmod +x install.sh
+./install.sh
 ```
+
+Installer akan:
+- ✅ Setup dependencies
+- ✅ Build aplikasi
+- ✅ Tanya port custom (default: 8080)
+- ✅ Save konfigurasi
+
+### 2. Run Server
+
+```bash
+# Jalankan server (pakai port dari config)
+./cute-finance
+
+# Atau override port via flag
+./cute-finance -port 9090
+```
+
+### 3. Access
+
+Buka browser: `http://localhost:<port-yang-dipilih>`
 
 ### ⚠️ Fix Error go.sum
 
@@ -72,25 +85,9 @@ go mod download
 go mod tidy
 
 # Atau gunakan setup script
+chmod +x setup.sh
 ./setup.sh
 ```
-
-### 2. Run
-
-```bash
-# Jalankan server
-./cute-finance
-
-# Atau dengan installer TUI
-./cute-finance -install
-
-# Custom port
-./cute-finance -port 9090
-```
-
-### 3. Access
-
-Buka browser: `http://localhost:8080`
 
 ## 📦 Installation Methods
 
