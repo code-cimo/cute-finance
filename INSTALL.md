@@ -13,21 +13,24 @@
 
 ## 🚀 Instalasi Cepat
 
-### ⚠️ Fix Error go.sum (Jika Ada)
+### ⚠️ Fix Error Dependencies (Jika Ada)
 
-Jika muncul error `malformed go.sum`, jalankan:
+Jika muncul error seperti:
+```
+go: modernc.org/gc/v3@...: invalid version: unknown revision
+```
 
+Jalankan:
 ```bash
-# Hapus go.sum lama
-rm -f go.sum
-
-# Download dan generate ulang
-go mod download
-go mod tidy
-
-# Atau gunakan setup script
+# Gunakan setup script (recommended)
 chmod +x setup.sh
 ./setup.sh
+
+# Atau manual
+rm -f go.sum
+go clean -modcache
+go mod download
+go mod tidy
 ```
 
 ### Metode 1: Installer Otomatis (Recommended)
@@ -46,7 +49,7 @@ Installer akan:
 1. ✅ Cek Go installation
 2. ✅ **Tanya port custom** (default: 8080)
 3. ✅ Tanya data directory (default: ./data)
-4. ✅ Setup dependencies
+4. ✅ Setup dependencies (auto-fix jika ada error)
 5. ✅ Build aplikasi
 6. ✅ Jalankan TUI installer (preview mascot, systemd service)
 7. ✅ Save konfigurasi ke `data/config.json`

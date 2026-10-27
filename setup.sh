@@ -30,9 +30,17 @@ if [ -f "go.sum" ]; then
     rm -f go.sum
 fi
 
+# Clean module cache
+echo -e "${BLUE}🧹 Cleaning module cache...${NC}"
+go clean -modcache
+
 # Download dependencies
 echo -e "${BLUE}📦 Downloading dependencies...${NC}"
-go mod download
+if ! go mod download 2>&1; then
+    echo -e "${YELLOW}⚠️  Error downloading dependencies, retrying...${NC}"
+    sleep 2
+    go mod download
+fi
 
 # Generate go.sum yang benar
 echo -e "${BLUE}🔧 Generating go.sum...${NC}"
