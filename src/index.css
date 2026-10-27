@@ -1,1 +1,146 @@
 @import "tailwindcss";
+
+@theme {
+  --color-pastel-yellow: #FFF9C4;
+  --color-pastel-pink: #F8BBD0;
+  --color-pastel-mint: #C8E6C9;
+  --color-pastel-blue: #BBDEFB;
+  --color-pastel-lavender: #E1BEE7;
+  --color-pastel-peach: #FFCCBC;
+  --color-pastel-cream: #FFF8E1;
+  --color-cute-brown: #5D4037;
+  --color-cute-dark: #3E2723;
+  --font-family-nunito: 'Nunito', sans-serif;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: linear-gradient(180deg, #FFF9C4 0%, #FFF8E1 30%, #FFFFFF 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Decorative background dots */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle, #F8BBD020 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #F8BBD0;
+  border-radius: 4px;
+}
+
+/* Animations */
+@keyframes bounce-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-bounce-soft {
+  animation: bounce-soft 2s ease-in-out infinite;
+}
+
+.animate-wiggle {
+  animation: wiggle 1s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}
+
+/* Bottom sheet overlay */
+.sheet-overlay {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* Swipe action styles */
+.swipe-container {
+  overflow: hidden;
+  position: relative;
+}
+
+/* Safe area for mobile */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+/* Progress bar animation */
+.progress-fill {
+  transition: width 0.8s ease-out;
+}
+
+/* Input focus styles */
+input:focus, select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(248, 187, 208, 0.4);
+}
+
+/* Donut chart */
+.donut-segment {
+  transition: all 0.3s ease;
+}

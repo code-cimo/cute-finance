@@ -1,0 +1,24 @@
+{
+  "name": "CuteFinance - Personal Finance Manager",
+  "short_name": "CuteFinance",
+  "description": "A cute and friendly personal finance manager PWA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF9C4",
+  "theme_color": "#FFF9C4",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
