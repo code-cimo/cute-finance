@@ -1,354 +1,226 @@
-# 🐾 CuteFinance PWA - Panduan Instalasi Lengkap
+# 🐾 CuteFinance PWA - Panduan Instalasi (Go Edition)
 
-## 📋 Daftar Isi
+## 📋 Prasyarat
 
-1. [Instalasi Cepat (Frontend Only)](#instalasi-cepat)
-2. [Instalasi dengan Docker](#instalasi-docker)
-3. [Instalasi Manual](#instalasi-manual)
-4. [Deployment di Odroid C2](#deployment-odroid-c2)
-5. [Konfigurasi Lanjutan](#konfigurasi-lanjutan)
-6. [Troubleshooting](#troubleshooting)
+### Wajib
+- **Go 1.22+** - [Download](https://go.dev/dl/)
+- **Git**
 
----
+### Opsional
+- **Node.js 18+** - Untuk build frontend
+- **Docker** - Untuk containerized deployment
+- **Tailscale** - Untuk secure remote access
 
 ## 🚀 Instalasi Cepat
 
-### Prasyarat
-
-- **Node.js** 18+ dan npm
-- **Git**
-- **Modern Browser** (Chrome, Firefox, Safari, Edge)
-
-### Langkah 1: Clone Repository
-
-```bash
-git clone https://github.com/yourusername/cutefinance-pwa.git
-cd cutefinance-pwa
-```
-
-### Langkah 2: Install Dependencies
-
-```bash
-npm install
-```
-
-### Langkah 3: Jalankan Development Server
-
-```bash
-npm run dev
-```
-
-Aplikasi akan berjalan di `http://localhost:5173`
-
-### Langkah 4: Build untuk Production
-
-```bash
-npm run build
-```
-
-File output ada di folder `dist/`
-
----
-
-## 🐳 Instalasi Docker
-
-### Metode 1: Docker Compose (Recommended)
+### Metode 1: Installer Otomatis (Recommended)
 
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/cutefinance-pwa.git
 cd cutefinance-pwa
 
-# Build dan jalankan
-docker-compose up -d
-
-# Cek status
-docker-compose ps
-
-# Lihat logs
-docker-compose logs -f
+# Jalankan installer
+chmod +x install.sh
+./install.sh
 ```
 
-Akses di `http://localhost:8080`
+Installer akan otomatis:
+1. ✅ Cek & install Go
+2. ✅ Download dependencies
+3. ✅ Build frontend & backend
+4. ✅ Jalankan TUI installer
+5. ✅ Setup firewall
+6. ✅ Setup Tailscale (optional)
 
-### Metode 2: Docker Manual
+### Metode 2: Manual Build
+
+```bash
+# 1. Clone
+git clone https://github.com/yourusername/cutefinance-pwa.git
+cd cutefinance-pwa
+
+# 2. Download Go dependencies
+go mod download
+
+# 3. Build frontend (jika Node.js tersedia)
+cd frontend && npm install && npm run build && cd ..
+cp -r frontend/dist ./dist
+
+# 4. Build Go binary
+go build -ldflags="-w -s" -o cute-finance ./cmd/server
+
+# 5. Jalankan
+./cute-finance
+```
+
+### Metode 3: Docker
 
 ```bash
 # Build image
-docker build -t cutefinance-pwa .
+docker build -t cutefinance .
 
-# Jalankan container
+# Run container
 docker run -d \
   --name cutefinance \
-  -p 8080:80 \
+  -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
   --restart unless-stopped \
-  cutefinance-pwa
+  cutefinance
 
-# Cek logs
-docker logs -f cutefinance
+# Access: http://localhost:8080
 ```
 
-### Stop/Start Container
+### Metode 4: Menggunakan Make
 
 ```bash
-# Stop
-docker-compose down
+# Install dependencies
+make deps
 
-# Start
-docker-compose up -d
+# Build
+make build
 
-# Restart
-docker-compose restart
+# Run
+make run
+
+# Atau custom port
+make run PORT=9090
 ```
 
----
+## 🖥️ Cross-Compile untuk Odroid C2 (ARM64)
 
-## 🔧 Instalasi Manual
-
-### 1. Install Node.js
-
-**Ubuntu/Debian:**
-```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-```
-
-**CentOS/RHEL:**
-```bash
-curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
-sudo yum install -y nodejs
-```
-
-**macOS:**
-```bash
-brew install node@20
-```
-
-### 2. Install Nginx
-
-**Ubuntu/Debian:**
-```bash
-sudo apt install -y nginx
-```
-
-**CentOS/RHEL:**
-```bash
-sudo yum install -y nginx
-```
-
-**macOS:**
-```bash
-brew install nginx
-```
-
-### 3. Build Aplikasi
+### Di Development Machine (x86_64)
 
 ```bash
-git clone https://github.com/yourusername/cutefinance-pwa.git
-cd cutefinance-pwa
-npm install
-npm run build
+# Build untuk ARM64
+GOOS=linux GOARCH=arm64 go build -ldflags="-w -s" -o cute-finance ./cmd/server
+
+# Copy ke Odroid
+scp cute-finance odroid@<ip-address>:~/
+
+# Atau gunakan Makefile
+make build-arm64
+scp cute-finance-arm64 odroid@<ip-address>:~/cute-finance
 ```
 
-### 4. Deploy ke Nginx
+### Di Odroid C2
 
 ```bash
-# Create directory
-sudo mkdir -p /var/www/cutefinance
+# SSH ke Odroid
+ssh odroid@<ip-address>
 
-# Copy files
-sudo cp -r dist/* /var/www/cutefinance/
+# Berikan permission
+chmod +x ~/cute-finance
 
-# Set permissions
-sudo chown -R www-data:www-data /var/www/cutefinance
-sudo chmod -R 755 /var/www/cutefinance
+# Jalankan installer
+./cute-finance -install
+
+# Atau jalankan langsung
+./cute-finance -port 8080
 ```
 
-### 5. Konfigurasi Nginx
+## 🔧 Konfigurasi
+
+### Command Line Flags
 
 ```bash
-sudo nano /etc/nginx/sites-available/cutefinance
+./cute-finance [flags]
+
+Flags:
+  -port int     Server port (default: 8080)
+  -data string  Data directory (default: "./data")
+  -install      Run interactive installer
+  -version      Show version
 ```
 
-Paste konfigurasi berikut:
+### Config File
 
-```nginx
-server {
-    listen 8080;
-    server_name _;
-    root /var/www/cutefinance;
-    index index.html;
+Config disimpan di `{data_dir}/config.json`:
 
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Cache static assets
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # Enable gzip
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml image/svg+xml;
+```json
+{
+  "port": 8080,
+  "data_dir": "./data"
 }
 ```
 
-### 6. Enable Site
+### Environment Variables (Future)
 
 ```bash
-# Create symlink
-sudo ln -s /etc/nginx/sites-available/cutefinance /etc/nginx/sites-enabled/
-
-# Test configuration
-sudo nginx -t
-
-# Reload Nginx
-sudo systemctl reload nginx
+export CUTEFINANCE_PORT=8080
+export CUTEFINANCE_DATA_DIR=./data
 ```
 
-### 7. Setup Firewall
+## 🐳 Docker Deployment
+
+### Build Image
 
 ```bash
-# UFW (Ubuntu)
-sudo ufw allow 8080/tcp
-sudo ufw enable
-
-# Firewalld (CentOS/RHEL)
-sudo firewall-cmd --permanent --add-port=8080/tcp
-sudo firewall-cmd --reload
+docker build -t cutefinance:latest .
 ```
 
-### 8. Akses Aplikasi
-
-Buka browser dan akses: `http://localhost:8080` atau `http://<your-ip>:8080`
-
----
-
-## 🖥️ Deployment Odroid C2
-
-### Persiapan Hardware
-
-1. **Flash OS** ke eMMC/SD Card
-   - Download Ubuntu 20.04 ARM64 dari [Odroid Wiki](https://wiki.odroid.com/odroid-c2/os_images/ubuntu)
-   - Flash menggunakan Etcher atau `dd`
-
-2. **Initial Setup**
-   ```bash
-   # SSH ke Odroid
-   ssh odroid@<ip-address>
-   
-   # Update system
-   sudo apt update && sudo apt upgrade -y
-   
-   # Install basic tools
-   sudo apt install -y curl git wget vim htop
-   ```
-
-### Instalasi dengan Docker
+### Run Container
 
 ```bash
-# Install Docker
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-newgrp docker
+docker run -d \
+  --name cutefinance \
+  -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
+  -e TZ=Asia/Jakarta \
+  --restart unless-stopped \
+  cutefinance:latest
+```
 
-# Clone dan run
-git clone https://github.com/yourusername/cutefinance-pwa.git
-cd cutefinance-pwa
+### Docker Compose
+
+```yaml
+version: '3.8'
+services:
+  cutefinance:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+```
+
+```bash
 docker-compose up -d
 ```
 
-### Instalasi Manual
+## 🔐 Systemd Service
+
+### Auto-generate via Installer
 
 ```bash
-# Install Node.js
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs nginx
-
-# Clone dan build
-git clone https://github.com/yourusername/cutefinance-pwa.git
-cd cutefinance-pwa
-npm install
-npm run build
-
-# Deploy
-sudo mkdir -p /var/www/cutefinance
-sudo cp -r dist/* /var/www/cutefinance/
-sudo chown -R www-data:www-data /var/www/cutefinance
-
-# Setup Nginx (ikuti langkah manual installation di atas)
+./cute-finance -install
+# Pilih "y" saat ditanya membuat systemd service
 ```
 
-### Setup Tailscale (Secure Remote Access)
+### Manual Setup
 
 ```bash
-# Install Tailscale
-curl -fsSL https://tailscale.com/install.sh | sh
+# Create service file
+sudo tee /etc/systemd/system/cutefinance.service > /dev/null <<EOF
+[Unit]
+Description=CuteFinance PWA
+After=network.target
 
-# Start Tailscale
-sudo tailscale up
+[Service]
+Type=simple
+User=$(whoami)
+WorkingDirectory=$(pwd)
+ExecStart=$(pwd)/cute-finance -port 8080
+Restart=always
+RestartSec=10
 
-# Login di browser dan authorize
-
-# Cek IP Tailscale
-tailscale ip
-
-# Akses via: http://<tailscale-ip>:8080
-```
-
-### Optimasi Performance
-
-```bash
-# Enable swap (jika RAM 2GB)
-sudo fallocate -l 2G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-
-# Monitor temperature
-cat /sys/class/thermal/thermal_zone0/temp
-```
-
-Panduan lengkap: [docs/DEPLOYMENT-ODROID.md](docs/DEPLOYMENT-ODROID.md)
-
----
-
-## ⚙️ Konfigurasi Lanjutan
-
-### SSL/HTTPS
-
-**Let's Encrypt (Public Domain):**
-```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d cutefinance.yourdomain.com
-```
-
-**Self-Signed (Local Network):**
-```bash
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout /etc/ssl/private/cutefinance.key \
-  -out /etc/ssl/certs/cutefinance.crt \
-  -subj "/CN=cutefinance.local"
-```
-
-### Systemd Service
-
-```bash
-# Copy service file
-sudo cp systemd/cutefinance.service /etc/systemd/system/
-
-# Reload systemd
-sudo systemctl daemon-reload
+[Install]
+WantedBy=multi-user.target
+EOF
 
 # Enable and start
+sudo systemctl daemon-reload
 sudo systemctl enable cutefinance
 sudo systemctl start cutefinance
 
@@ -356,149 +228,89 @@ sudo systemctl start cutefinance
 sudo systemctl status cutefinance
 ```
 
-### Environment Variables
+## 🔒 Tailscale Setup
 
 ```bash
-# Copy .env.example
-cp .env.example .env
+# Install Tailscale
+curl -fsSL https://tailscale.com/install.sh | sh
 
-# Edit sesuai kebutuhan
-nano .env
+# Start
+sudo tailscale up
+
+# Get IP
+tailscale ip
+
+# Access via: http://<tailscale-ip>:8080
 ```
 
-### Backup & Restore
+## 📊 Database
 
-**Backup:**
+### Location
+Default: `./data/cutefinance.db`
+
+### Backup
 ```bash
-# Export dari browser: Settings > Export Data
+# Manual backup
+cp data/cutefinance.db data/cutefinance-backup-$(date +%Y%m%d).db
 
-# Backup configuration
-sudo tar -czf cutefinance-backup-$(date +%Y%m%d).tar.gz \
-  /var/www/cutefinance \
-  /etc/nginx/sites-available/cutefinance \
-  /etc/systemd/system/cutefinance.service
+# Via API
+curl http://localhost:8080/api/export > backup.json
 ```
 
-**Restore:**
+### Restore
 ```bash
-sudo tar -xzf cutefinance-backup-YYYYMMDD.tar.gz -C /
-sudo systemctl restart nginx
-sudo systemctl restart cutefinance
+# Via API
+curl -X POST -H "Content-Type: application/json" \
+  --data @backup.json \
+  http://localhost:8080/api/import
 ```
-
----
 
 ## 🐛 Troubleshooting
 
-### Aplikasi tidak bisa dibuka
-
+### Port already in use
 ```bash
-# Check service
-sudo systemctl status cutefinance
+# Check what's using port 8080
+sudo lsof -i :8080
 
-# Check Nginx
-sudo systemctl status nginx
+# Use different port
+./cute-finance -port 9090
+```
 
-# Check port
-sudo netstat -tulpn | grep 8080
+### Permission denied
+```bash
+chmod +x cute-finance
+```
 
-# Check logs
-sudo journalctl -u cutefinance -n 50
-sudo tail -f /var/log/nginx/error.log
+### Database locked
+```bash
+# Kill existing process
+pkill cute-finance
+
+# Remove lock file
+rm -f data/cutefinance.db-wal
+rm -f data/cutefinance.db-shm
 ```
 
 ### Build error
-
 ```bash
-# Clear cache
-rm -rf node_modules package-lock.json
-npm install
-
-# Update Node.js
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
+# Clean and rebuild
+go clean -modcache
+go mod download
+go build -o cute-finance ./cmd/server
 ```
 
-### PWA tidak bisa di-install
-
-- Pastikan menggunakan HTTPS atau localhost
-- Clear browser cache
-- Check manifest.json accessible: `curl http://localhost:8080/manifest.json`
-- Check service worker: `curl http://localhost:8080/sw.js`
-
-### Data hilang
-
-- Data disimpan di localStorage browser
-- Export rutin via Settings > Export Data
-- Import kembali via Settings > Import Data
-
-### Performance lambat
-
+### ARM64 build error
 ```bash
-# Enable Nginx caching (lihat konfigurasi di atas)
-# Check disk I/O
-iostat -x 1 5
-
-# Check memory
-free -h
-
-# Enable swap jika perlu
+# Pastikan menggunakan Pure Go SQLite (no CGO)
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o cute-finance ./cmd/server
 ```
 
-### Odroid C2 kepanasan
+## 📞 Support
 
-```bash
-# Monitor temperature
-cat /sys/class/thermal/thermal_zone0/temp
-
-# Install heatsink fan
-sudo apt install -y odroid-c2-utilities
-
-# Throttle CPU jika perlu
-echo "powersave" | sudo tee /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-```
+- **Documentation**: [README.md](README.md)
+- **Deployment Guide**: [docs/DEPLOYMENT-ODROID.md](docs/DEPLOYMENT-ODROID.md)
+- **Issues**: GitHub Issues
 
 ---
 
-## 📞 Support & Resources
-
-### Dokumentasi
-
-- **README**: [README.md](README.md)
-- **Quick Start (ID)**: [docs/QUICK-START-ID.md](docs/QUICK-START-ID.md)
-- **Deployment Odroid**: [docs/DEPLOYMENT-ODROID.md](docs/DEPLOYMENT-ODROID.md)
-
-### Community
-
-- **GitHub Issues**: [Report bug](https://github.com/yourusername/cutefinance-pwa/issues)
-- **Discussions**: [Ask questions](https://github.com/yourusername/cutefinance-pwa/discussions)
-- **Email**: support@cutefinance.app
-
-### Useful Links
-
-- [Node.js Documentation](https://nodejs.org/docs/)
-- [Nginx Documentation](https://nginx.org/en/docs/)
-- [Docker Documentation](https://docs.docker.com/)
-- [Tailscale Documentation](https://tailscale.com/kb/)
-- [PWA Best Practices](https://web.dev/progressive-web-apps/)
-
----
-
-## ✅ Checklist Instalasi
-
-- [ ] Node.js 18+ terinstall
-- [ ] Git terinstall
-- [ ] Repository di-clone
-- [ ] Dependencies terinstall (`npm install`)
-- [ ] Build berhasil (`npm run build`)
-- [ ] Nginx terinstall dan dikonfigurasi
-- [ ] Firewall port 8080 dibuka
-- [ ] Aplikasi accessible di browser
-- [ ] PWA bisa di-install (Add to Home Screen)
-- [ ] Backup data rutin dilakukan
-
----
-
-**Selamat! Aplikasi CuteFinance PWA siap digunakan! 🐾💰**
-
-Untuk pertanyaan lebih lanjut, silakan buka issue di GitHub atau hubungi support@cutefinance.app
+**Selamat menggunakan CuteFinance! 🐾**
