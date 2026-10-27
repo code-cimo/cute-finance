@@ -61,8 +61,19 @@ mkdir -p "$DATA_DIR"
 echo ""
 echo -e "${BLUE}📦 Setting up dependencies...${NC}"
 rm -f go.sum
-go mod download
+
+# Clean module cache if needed
+echo "Downloading dependencies..."
+if ! go mod download 2>&1; then
+    echo -e "${YELLOW}⚠️  Dependency error detected, cleaning cache...${NC}"
+    go clean -modcache
+    go mod download
+fi
+
+# Tidy modules
+echo "Tidying modules..."
 go mod tidy
+
 echo -e "${GREEN}✓ Dependencies ready${NC}"
 
 # Build application
