@@ -89,13 +89,16 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
 
 ## ▶️ Running the Application
 
-### Basic Run
+### Basic Run (Use Port from Config)
 ```bash
 ./cute-finance
+# Server will use port from data/config.json
+# If config doesn't exist, default port is 8080
 ```
 
-### Custom Port
+### Custom Port via Flag
 ```bash
+# Override port from config
 ./cute-finance -port 9090
 ```
 
@@ -109,15 +112,22 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
 ./cute-finance -port 9090 -data /var/lib/cutefinance
 ```
 
-### Run with TUI Installer
+### Run with TUI Installer (Set Port)
 ```bash
 ./cute-finance -install
+# TUI will ask for port
+# Port will be saved to data/config.json
 ```
 
 ### Check Version
 ```bash
 ./cute-finance -version
 ```
+
+### Port Priority Order
+1. Command line flag (`-port`) - highest
+2. Config file (`data/config.json`)
+3. Default (8080) - lowest
 
 ---
 

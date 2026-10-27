@@ -37,22 +37,25 @@ chmod +x setup.sh
 git clone https://github.com/yourusername/cutefinance-pwa.git
 cd cutefinance-pwa
 
-# Jalankan setup (generate go.sum)
-chmod +x setup.sh
-./setup.sh
-
 # Jalankan installer
 chmod +x install.sh
 ./install.sh
 ```
 
-Installer akan otomatis:
-1. ✅ Cek & install Go
-2. ✅ Download dependencies
-3. ✅ Build frontend & backend
-4. ✅ Jalankan TUI installer
-5. ✅ Setup firewall
-6. ✅ Setup Tailscale (optional)
+Installer akan:
+1. ✅ Cek Go installation
+2. ✅ **Tanya port custom** (default: 8080)
+3. ✅ Tanya data directory (default: ./data)
+4. ✅ Setup dependencies
+5. ✅ Build aplikasi
+6. ✅ Jalankan TUI installer (preview mascot, systemd service)
+7. ✅ Save konfigurasi ke `data/config.json`
+
+Setelah install, jalankan server:
+```bash
+./cute-finance
+# Server akan jalan di port yang sudah di-set di installer
+```
 
 ### Metode 2: Manual Build
 
@@ -192,13 +195,42 @@ chmod +x ~/cute-finance
 
 ## 🔧 Konfigurasi
 
+### Cara Set Port
+
+**Option 1: Via Installer (Recommended)**
+```bash
+# Jalankan installer
+./cute-finance -install
+
+# Masukkan port yang diinginkan saat ditanya
+# Port akan tersimpan di config.json
+```
+
+**Option 2: Via Command Line Flag**
+```bash
+# Override port saat run server
+./cute-finance -port 9090
+```
+
+**Option 3: Edit Config Manual**
+```bash
+# Edit file config
+nano data/config.json
+
+# Ubah port
+{
+  "port": 9090,
+  "data_dir": "./data"
+}
+```
+
 ### Command Line Flags
 
 ```bash
 ./cute-finance [flags]
 
 Flags:
-  -port int     Server port (default: 8080)
+  -port int     Server port (override config)
   -data string  Data directory (default: "./data")
   -install      Run interactive installer
   -version      Show version
@@ -215,12 +247,10 @@ Config disimpan di `{data_dir}/config.json`:
 }
 ```
 
-### Environment Variables (Future)
-
-```bash
-export CUTEFINANCE_PORT=8080
-export CUTEFINANCE_DATA_DIR=./data
-```
+**Urutan Prioritas Port:**
+1. Command line flag (`-port`) - highest priority
+2. Config file (`config.json`)
+3. Default (8080) - lowest priority
 
 ## 🐳 Docker Deployment
 

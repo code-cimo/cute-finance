@@ -25,16 +25,24 @@ import (
 //go:embed dist/*
 var frontendFS embed.FS
 
-var (
-	port     = flag.Int("port", 8080, "Server port")
-	dataDir  = flag.String("data", "./data", "Data directory for SQLite database")
-	install  = flag.Bool("install", false, "Run interactive installer")
-	version  = flag.Bool("version", false, "Show version")
-)
-
 const AppVersion = "1.0.0"
 
+// Config holds application configuration
+type Config struct {
+	Port    int    `json:"port"`
+	DataDir string `json:"data_dir"`
+}
+
+// Global config
+var config Config
+
 func main() {
+	// Define flags with default values
+	port := flag.Int("port", 0, "Server port (0 = use config file)")
+	dataDir := flag.String("data", "./data", "Data directory")
+	install := flag.Bool("install", false, "Run interactive installer")
+	version := flag.Bool("version", false, "Show version")
+	
 	flag.Parse()
 
 	if *version {
@@ -42,28 +50,35 @@ func main() {
 		os.Exit(0)
 	}
 
+	// If installer mode, run TUI and exit
 	if *install {
-		installer.Run()
+		fmt.Printf("🔧 Running installer with data directory: %s\n\n", *dataDir)
+		installer.Run(*dataDir)
 		return
 	}
 
-	// Load config
-	config := loadConfig()
-	if config != nil {
-		*port = config.Port
-		*dataDir = config.DataDir
+	// Load config from data directory
+	config = loadConfig(*dataDir)
+
+	// Override config with command-line flags if provided
+	if *port > 0 {
+		config.Port = *port
+		log.Printf("⚠️  Port overridden by flag: %d", *port)
 	}
+	
+	// Ensure DataDir is set
+	config.DataDir = *dataDir
 
 	// Ensure data directory exists
-	if err := os.MkdirAll(*dataDir, 0755); err != nil {
-		log.Fatalf("Failed to create data directory: %v", err)
+	if err := os.MkdirAll(config.DataDir, 0755); err != nil {
+		log.Fatalf("❌ Failed to create data directory: %v", err)
 	}
 
 	// Initialize database
-	dbPath := filepath.Join(*dataDir, "cutefinance.db")
+	dbPath := filepath.Join(config.DataDir, "cutefinance.db")
 	db, err := database.Init(dbPath)
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		log.Fatalf("❌ Failed to initialize database: %v", err)
 	}
 	defer db.Close()
 
@@ -71,10 +86,11 @@ func main() {
 	r := setupRouter(db)
 
 	// Start server
-	addr := fmt.Sprintf(":%d", *port)
+	addr := fmt.Sprintf(":%d", config.Port)
 	log.Printf("🐾 CuteFinance PWA v%s", AppVersion)
 	log.Printf("📡 Server running on http://localhost%s", addr)
 	log.Printf("💾 Database: %s", dbPath)
+	log.Printf("📁 Data directory: %s", config.DataDir)
 
 	// Graceful shutdown
 	go func() {
@@ -86,8 +102,38 @@ func main() {
 	}()
 
 	if err := http.ListenAndServe(addr, r); err != nil {
-		log.Fatalf("Server failed: %v", err)
+		log.Fatalf("❌ Server failed: %v", err)
 	}
+}
+
+func loadConfig(dataDir string) Config {
+	configPath := filepath.Join(dataDir, "config.json")
+	
+	// Default config
+	cfg := Config{
+		Port:    8080,
+		DataDir: dataDir,
+	}
+
+	// Try to read config file
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		// Config file doesn't exist yet, return defaults
+		return cfg
+	}
+
+	// Parse config
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		log.Printf("⚠️  Warning: Failed to parse config file: %v", err)
+		return Config{Port: 8080, DataDir: dataDir}
+	}
+
+	// Ensure DataDir is set
+	if cfg.DataDir == "" {
+		cfg.DataDir = dataDir
+	}
+
+	return cfg
 }
 
 func setupRouter(db *sql.DB) *chi.Mux {
@@ -139,7 +185,7 @@ func setupRouter(db *sql.DB) *chi.Mux {
 	// Serve frontend (embedded)
 	distFS, err := fs.Sub(frontendFS, "dist")
 	if err != nil {
-		log.Printf("Warning: Frontend not embedded, serving from disk")
+		log.Printf("⚠️  Warning: Frontend not embedded, serving from disk")
 		fileServer := http.FileServer(http.Dir("./dist"))
 		r.Handle("/*", fileServer)
 	} else {
@@ -148,23 +194,4 @@ func setupRouter(db *sql.DB) *chi.Mux {
 	}
 
 	return r
-}
-
-type Config struct {
-	Port    int    `json:"port"`
-	DataDir string `json:"data_dir"`
-}
-
-func loadConfig() *Config {
-	configPath := filepath.Join(*dataDir, "config.json")
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return nil
-	}
-
-	var config Config
-	if err := json.Unmarshal(data, &config); err != nil {
-		return nil
-	}
-	return &config
 }

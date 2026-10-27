@@ -8,23 +8,59 @@ git clone https://github.com/yourusername/cutefinance-pwa.git
 cd cutefinance-pwa
 ```
 
-### Step 2: Setup Dependencies
+### Step 2: Run Installer
 ```bash
-# Jalankan setup script (akan generate go.sum yang benar)
-chmod +x setup.sh
-./setup.sh
+# Jalankan installer (akan tanya port & setup)
+chmod +x install.sh
+./install.sh
 ```
 
-### Step 3: Build & Run
-```bash
-# Build
-make build
+Installer akan:
+- ✅ Setup dependencies
+- ✅ **Tanya port custom** (default: 8080)
+- ✅ Build aplikasi
+- ✅ Save konfigurasi
 
-# Run
+### Step 3: Run Server
+```bash
+# Jalankan server (pakai port dari config)
 ./cute-finance
 ```
 
-Access: http://localhost:8080
+Access: `http://localhost:<port-yang-dipilih>`
+
+---
+
+## 🎯 Cara Set Port Custom
+
+### Via Installer (Recommended)
+```bash
+# Jalankan installer
+./cute-finance -install
+
+# Masukkan port saat ditanya
+# Contoh: 9090
+
+# Port tersimpan di data/config.json
+```
+
+### Via Command Line
+```bash
+# Override port saat run
+./cute-finance -port 9090
+```
+
+### Via Config File
+```bash
+# Edit config
+nano data/config.json
+
+# Ubah port
+{
+  "port": 9090,
+  "data_dir": "./data"
+}
+```
 
 ---
 

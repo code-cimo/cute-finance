@@ -144,12 +144,67 @@ listen tcp :8080: bind: address already in use
 
 ### Solution
 ```bash
-# Option 1: Gunakan port lain
+# Option 1: Gunakan port lain via flag
 ./cute-finance -port 9090
 
-# Option 2: Kill process yang menggunakan port
+# Option 2: Edit config file
+nano data/config.json
+# Ubah "port": 8080 menjadi "port": 9090
+
+# Option 3: Re-run installer dengan port baru
+./cute-finance -install
+# Masukkan port baru saat ditanya
+
+# Option 4: Kill process yang menggunakan port
 sudo lsof -i :8080
 sudo kill -9 <PID>
+```
+
+---
+
+## Port Configuration
+
+### How to Set Custom Port
+
+**Method 1: Via Installer (Recommended)**
+```bash
+# Run installer
+./cute-finance -install
+
+# Enter port when prompted
+# Port will be saved to data/config.json
+```
+
+**Method 2: Via Command Line Flag**
+```bash
+# Override port at runtime
+./cute-finance -port 9090
+```
+
+**Method 3: Edit Config File**
+```bash
+# Edit config
+nano data/config.json
+
+# Change port
+{
+  "port": 9090,
+  "data_dir": "./data"
+}
+```
+
+### Port Priority Order
+1. Command line flag (`-port`) - highest priority
+2. Config file (`data/config.json`)
+3. Default (8080) - lowest priority
+
+### Verify Current Port
+```bash
+# Check config file
+cat data/config.json
+
+# Check running process
+ps aux | grep cute-finance
 ```
 
 ---
