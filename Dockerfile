@@ -7,16 +7,19 @@ WORKDIR /app
 RUN apk add --no-cache git
 
 # Copy go mod files
-COPY go.mod go.sum ./
-RUN go mod download
+COPY go.mod ./
+RUN go mod download || true
 
 # Copy source code
 COPY . .
 
+# Generate go.sum if not exists
+RUN go mod tidy
+
 # Build frontend first (if npm is available)
 # Note: In production, build frontend separately and copy dist/ folder
 
-# Build Go binary
+# Build Go binary (will use current platform architecture)
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o /cute-finance ./cmd/server
 
 # Final stage

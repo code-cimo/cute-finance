@@ -10,16 +10,26 @@ LDFLAGS = -ldflags "-w -s -X main.version=$(VERSION) -X main.buildTime=$(BUILD_T
 all: build
 
 # Build the application
-build:
+build: deps
 	@echo "🔨 Building $(APP_NAME)..."
 	go build $(LDFLAGS) -o $(APP_NAME) ./cmd/server
 	@echo "✅ Build complete: ./$(APP_NAME)"
 
 # Build for ARM64 (Odroid C2)
-build-arm64:
+build-arm64: deps
 	@echo "🔨 Building $(APP_NAME) for ARM64..."
-	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o $(APP_NAME)-arm64 ./cmd/server
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build $(LDFLAGS) -o $(APP_NAME)-arm64 ./cmd/server
 	@echo "✅ Build complete: ./$(APP_NAME)-arm64"
+
+# Build for x86_64
+build-amd64: deps
+	@echo "🔨 Building $(APP_NAME) for x86_64..."
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build $(LDFLAGS) -o $(APP_NAME)-amd64 ./cmd/server
+	@echo "✅ Build complete: ./$(APP_NAME)-amd64"
+
+# Build for all platforms
+build-all: build build-arm64 build-amd64
+	@echo "✅ All builds complete"
 
 # Run the application
 run: build
@@ -92,6 +102,15 @@ deps:
 	go mod tidy
 	@echo "✅ Dependencies installed"
 
+# Clean and reinstall dependencies
+deps-clean:
+	@echo "🧹 Cleaning dependencies..."
+	rm -f go.sum
+	go clean -modcache
+	go mod download
+	go mod tidy
+	@echo "✅ Dependencies reinstalled"
+
 # Format code
 fmt:
 	@echo "🎨 Formatting code..."
@@ -131,24 +150,37 @@ help:
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""
-	@echo "Targets:"
-	@echo "  build          Build the application"
+	@echo "Build Targets:"
+	@echo "  build          Build for current platform"
 	@echo "  build-arm64    Build for ARM64 (Odroid C2)"
+	@echo "  build-amd64    Build for x86_64"
+	@echo "  build-all      Build for all platforms"
+	@echo ""
+	@echo "Run Targets:"
 	@echo "  run            Build and run the application"
 	@echo "  run-port       Run with custom port (PORT=8080)"
 	@echo "  install-tui    Run interactive installer"
+	@echo "  dev            Run in development mode"
+	@echo ""
+	@echo "Dependency Targets:"
+	@echo "  deps           Install Go dependencies"
+	@echo "  deps-clean     Clean and reinstall dependencies"
+	@echo ""
+	@echo "Test Targets:"
 	@echo "  test           Run tests"
 	@echo "  test-coverage  Run tests with coverage"
-	@echo "  clean          Clean build artifacts"
+	@echo ""
+	@echo "Docker Targets:"
 	@echo "  docker         Build Docker image"
 	@echo "  docker-run     Run Docker container"
 	@echo "  docker-stop    Stop Docker container"
 	@echo "  docker-logs    View Docker logs"
-	@echo "  deps           Install Go dependencies"
+	@echo ""
+	@echo "Utility Targets:"
+	@echo "  clean          Clean build artifacts"
 	@echo "  fmt            Format code"
 	@echo "  lint           Run linter"
 	@echo "  docs           Generate documentation"
 	@echo "  frontend       Build frontend (requires Node.js)"
 	@echo "  full-build     Build frontend + backend"
-	@echo "  dev            Run in development mode"
 	@echo "  help           Show this help"

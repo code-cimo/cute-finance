@@ -13,12 +13,33 @@
 
 ## 🚀 Instalasi Cepat
 
+### ⚠️ Fix Error go.sum (Jika Ada)
+
+Jika muncul error `malformed go.sum`, jalankan:
+
+```bash
+# Hapus go.sum lama
+rm -f go.sum
+
+# Download dan generate ulang
+go mod download
+go mod tidy
+
+# Atau gunakan setup script
+chmod +x setup.sh
+./setup.sh
+```
+
 ### Metode 1: Installer Otomatis (Recommended)
 
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/cutefinance-pwa.git
 cd cutefinance-pwa
+
+# Jalankan setup (generate go.sum)
+chmod +x setup.sh
+./setup.sh
 
 # Jalankan installer
 chmod +x install.sh
@@ -87,32 +108,82 @@ make run
 make run PORT=9090
 ```
 
-## 🖥️ Cross-Compile untuk Odroid C2 (ARM64)
+## 🖥️ Cross-Compile Multi-Architecture
 
-### Di Development Machine (x86_64)
+### Build untuk ARM64 (Odroid C2)
+
+**Di Development Machine (x86_64 atau ARM64):**
 
 ```bash
-# Build untuk ARM64
-GOOS=linux GOARCH=arm64 go build -ldflags="-w -s" -o cute-finance ./cmd/server
-
-# Copy ke Odroid
-scp cute-finance odroid@<ip-address>:~/
-
-# Atau gunakan Makefile
+# Gunakan Makefile
 make build-arm64
+
+# Atau manual
+GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build \
+  -ldflags="-w -s" \
+  -o cute-finance-arm64 ./cmd/server
+
+# Copy ke Odroid C2
 scp cute-finance-arm64 odroid@<ip-address>:~/cute-finance
 ```
 
-### Di Odroid C2
+### Build untuk x86_64 (Server/PC)
 
 ```bash
-# SSH ke Odroid
+# Gunakan Makefile
+make build-amd64
+
+# Atau manual
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
+  -ldflags="-w -s" \
+  -o cute-finance-amd64 ./cmd/server
+```
+
+### Build untuk Semua Platform
+
+```bash
+# Build untuk x86_64, ARM64, dan native
+make build-all
+
+# Output:
+# - cute-finance (native)
+# - cute-finance-arm64 (ARM64)
+# - cute-finance-amd64 (x86_64)
+```
+
+### Build untuk macOS
+
+```bash
+# macOS ARM64 (Apple Silicon)
+GOOS=darwin GOARCH=arm64 go build -o cute-finance-darwin-arm64 ./cmd/server
+
+# macOS x86_64 (Intel)
+GOOS=darwin GOARCH=amd64 go build -o cute-finance-darwin-amd64 ./cmd/server
+```
+
+### Build untuk Windows
+
+```bash
+# Windows x86_64
+GOOS=windows GOARCH=amd64 go build -o cute-finance.exe ./cmd/server
+```
+
+### Deploy ke Odroid C2
+
+```bash
+# 1. Build di development machine
+make build-arm64
+
+# 2. Copy ke Odroid
+scp cute-finance-arm64 odroid@<ip-address>:~/cute-finance
+
+# 3. SSH ke Odroid
 ssh odroid@<ip-address>
 
-# Berikan permission
+# 4. Berikan permission
 chmod +x ~/cute-finance
 
-# Jalankan installer
+# 5. Jalankan installer
 ./cute-finance -install
 
 # Atau jalankan langsung
