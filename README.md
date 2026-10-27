@@ -35,6 +35,8 @@ Aplikasi manajemen keuangan pribadi berbasis PWA dengan backend **Go (Golang)** 
 
 ## 🚀 Quick Start
 
+**📖 Lihat [QUICKSTART.md](QUICKSTART.md) untuk panduan 3-step setup!**
+
 ### Prasyarat
 - Go 1.22+
 - Node.js 18+ (untuk build frontend)
@@ -46,11 +48,31 @@ Aplikasi manajemen keuangan pribadi berbasis PWA dengan backend **Go (Golang)** 
 git clone https://github.com/yourusername/cutefinance-pwa.git
 cd cutefinance-pwa
 
+# Setup dependencies (generate go.sum)
+chmod +x setup.sh
+./setup.sh
+
 # Build dengan Make
 make build
 
 # Atau manual
 go build -o cute-finance ./cmd/server
+```
+
+### ⚠️ Fix Error go.sum
+
+Jika muncul error `malformed go.sum`:
+
+```bash
+# Hapus go.sum lama
+rm -f go.sum
+
+# Generate ulang
+go mod download
+go mod tidy
+
+# Atau gunakan setup script
+./setup.sh
 ```
 
 ### 2. Run
@@ -122,18 +144,36 @@ go build -ldflags="-w -s" -o cute-finance ./cmd/server
 ./cute-finance
 ```
 
-### Method 4: Cross-compile untuk ARM64 (Odroid C2)
+### Method 4: Cross-compile Multi-Architecture
 
+**Build untuk ARM64 (Odroid C2):**
 ```bash
-# Build di machine x86_64
-GOOS=linux GOARCH=arm64 go build -ldflags="-w -s" -o cute-finance ./cmd/server
+# Gunakan Makefile
+make build-arm64
+
+# Atau manual
+GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build \
+  -ldflags="-w -s" \
+  -o cute-finance-arm64 ./cmd/server
 
 # Copy ke Odroid C2
-scp cute-finance odroid@<ip>:/home/odroid/
+scp cute-finance-arm64 odroid@<ip>:~/cute-finance
+```
 
-# SSH ke Odroid dan jalankan
-ssh odroid@<ip>
-./cute-finance
+**Build untuk x86_64 (Server/PC):**
+```bash
+make build-amd64
+
+# Atau manual
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
+  -ldflags="-w -s" \
+  -o cute-finance-amd64 ./cmd/server
+```
+
+**Build untuk Semua Platform:**
+```bash
+make build-all
+# Output: cute-finance (native), cute-finance-arm64, cute-finance-amd64
 ```
 
 ## 📁 Project Structure
@@ -289,6 +329,7 @@ CREATE TABLE budget_categories (
 ## 📞 Support
 
 - **Documentation**: [README.md](README.md), [INSTALL.md](INSTALL.md)
+- **Troubleshooting**: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 - **Issues**: GitHub Issues
 - **Email**: support@cutefinance.app
 
