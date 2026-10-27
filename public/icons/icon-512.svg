@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFF9C4"/>
+      <stop offset="100%" style="stop-color:#F8BBD0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="100" fill="url(#bg512)"/>
+  <!-- Capybara face -->
+  <ellipse cx="256" cy="280" rx="130" ry="110" fill="#A1887F"/>
+  <ellipse cx="256" cy="300" rx="85" ry="65" fill="#BCAAA4"/>
+  <!-- Ears -->
+  <ellipse cx="160" cy="190" rx="26" ry="18" fill="#8D6E63"/>
+  <ellipse cx="352" cy="190" rx="26" ry="18" fill="#8D6E63"/>
+  <!-- Eyes -->
+  <circle cx="213" cy="260" r="16" fill="#333"/>
+  <circle cx="299" cy="260" r="16" fill="#333"/>
+  <circle cx="218" cy="254" r="6" fill="white"/>
+  <circle cx="304" cy="254" r="6" fill="white"/>
+  <!-- Nose -->
+  <ellipse cx="256" cy="298" rx="20" ry="13" fill="#5D4037"/>
+  <circle cx="247" cy="296" r="5" fill="#333"/>
+  <circle cx="265" cy="296" r="5" fill="#333"/>
+  <!-- Mouth -->
+  <path d="M 230 318 Q 256 340 282 318" fill="none" stroke="#5D4037" stroke-width="4" stroke-linecap="round"/>
+  <!-- Blush -->
+  <circle cx="180" cy="295" r="18" fill="#FFB6C1" opacity="0.4"/>
+  <circle cx="332" cy="295" r="18" fill="#FFB6C1" opacity="0.4"/>
+  <!-- Coin -->
+  <circle cx="390" cy="145" r="48" fill="#FFD54F" stroke="#FFC107" stroke-width="4"/>
+  <text x="390" y="162" text-anchor="middle" font-size="48" font-weight="bold" fill="#F57F17">$</text>
+  <!-- Flower -->
+  <circle cx="130" cy="175" r="14" fill="#FFD54F"/>
+  <circle cx="116" cy="163" r="10" fill="#FFF176"/>
+  <circle cx="144" cy="163" r="10" fill="#FFF176"/>
+  <circle cx="120" cy="187" r="10" fill="#FFF176"/>
+  <circle cx="140" cy="187" r="10" fill="#FFF176"/>
+  <!-- Text -->
+  <text x="256" y="440" text-anchor="middle" font-family="Nunito, sans-serif" font-size="42" font-weight="800" fill="#5D4037">CuteFinance</text>
+</svg>
