@@ -1,405 +1,301 @@
 # 🐾 CuteFinance PWA - Personal Finance Manager
 
-Aplikasi manajemen keuangan pribadi berbasis PWA (Progressive Web App) dengan estetika "Original Cute Animals" yang lucu dan clean. Dioptimalkan untuk mobile-first dan self-hosted di Odroid C2 (ARM64).
+Aplikasi manajemen keuangan pribadi berbasis PWA dengan backend **Go (Golang)** dan frontend **React + TailwindCSS**. Dioptimalkan untuk self-hosted di Odroid C2 (ARM64 Linux).
 
-![CuteFinance](https://img.shields.io/badge/Status-Production%20Ready-success)
-![License](https://img.shields.io/badge/License-MIT-blue)
+![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react)
+![SQLite](https://img.shields.io/badge/SQLite-Pure%20Go-003B57?style=flat&logo=sqlite)
 ![PWA](https://img.shields.io/badge/PWA-Ready-9cf)
 
 ## ✨ Fitur Utama
 
+### 🏗️ Tech Stack
+- **Backend**: Go 1.22+ (Chi Router, Pure Go SQLite)
+- **Frontend**: React 18 + TypeScript + TailwindCSS
+- **Database**: SQLite (modernc.org/sqlite - no CGO)
+- **Deployment**: Single binary, Docker, systemd
+
 ### 🎨 UI/UX
-- **Mobile-First Design**: Dioptimalkan untuk layar sentuh
-- **Cute Animal Mascots**: Pilih maskot favorit (Panda, Shiba, Bunny, Capybara, Cat)
-- **Pastel Color Palette**: Warna lembut yang nyaman di mata
-- **Smooth Animations**: Transisi halus dan micro-interactions
-- **Bottom Navigation**: Navigasi thumb-friendly
+- **5 Cute Mascots**: Panda, Shiba, Bunny, Capybara, Cat (SVG)
+- **Pastel Colors**: Yellow, Pink, Mint, Blue
+- **Mobile-First**: Touch-optimized, bottom navigation
+- **Smooth Animations**: CSS transitions, confetti effects
 
-### 💰 Manajemen Keuangan
-- **Budget Allocation Otomatis**: 
-  - Rule A: 50/30/20 (Needs/Wants/Savings)
-  - Rule B: Zero-Based (Survival/Lifestyle/Future/Charity)
-  - Rule C: Custom allocation
-- **Multi-Account Support**: Cash, Bank Transfer, E-Wallet
-- **Kategori Lengkap**: Food, Bills, Transport, Shopping, dll
-- **Real-time Tracking**: Progress bar per kategori
-
-### 📊 Dashboard & Statistik
-- **Balance Overview**: Total budget vs spent
-- **Donut Chart**: Visualisasi spending per kategori
-- **Daily Trend**: Grafik 7 hari terakhir
-- **Budget Health**: Status compliance per kategori
-- **Streak Counter**: Gamifikasi logging harian
-
-### 🔔 Notifikasi & Scheduler
-- **Payday Reminder**: Notifikasi otomatis di hari gajian
-- **Budget Alert**: Warning saat mendekati limit
-- **PWA Push Notification**: Berfungsi offline
-- **Background Sync**: Sinkronisasi data otomatis
+### 💰 Finance Features
+- **Budget Allocation**: 50/30/20, Zero-Based, Custom
+- **Multi-Account**: Cash, Bank, E-Wallet
+- **15 Categories**: Food, Bills, Transport, Shopping, dll
+- **Statistics**: Charts, trends, budget health
 
 ### 📱 PWA Features
-- **Offline Support**: Service Worker untuk akses offline
+- **Offline Support**: Service Worker
 - **Installable**: Add to Home Screen
-- **Standalone Mode**: Berjalan seperti native app
-- **Fast Loading**: App Shell Architecture
+- **Push Notifications**: Payday reminders
+- **Background Sync**
 
 ## 🚀 Quick Start
 
 ### Prasyarat
-- Node.js 18+ dan npm
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- (Opsional) Odroid C2 atau ARM64 device untuk self-hosting
+- Go 1.22+
+- Node.js 18+ (untuk build frontend)
+- Git
 
-### Instalasi Development
+### 1. Clone & Build
 
 ```bash
-# Clone repository
 git clone https://github.com/yourusername/cutefinance-pwa.git
 cd cutefinance-pwa
 
-# Install dependencies
-npm install
+# Build dengan Make
+make build
 
-# Jalankan development server
-npm run dev
-
-# Akses di browser
-# http://localhost:5173
+# Atau manual
+go build -o cute-finance ./cmd/server
 ```
 
-### Build untuk Production
+### 2. Run
 
 ```bash
-# Build aplikasi
-npm run build
+# Jalankan server
+./cute-finance
 
-# File output ada di folder dist/
-# Deploy folder dist/ ke web server
+# Atau dengan installer TUI
+./cute-finance -install
+
+# Custom port
+./cute-finance -port 9090
 ```
 
-## 📦 Deployment Options
+### 3. Access
 
-### Option 1: Static Hosting (Recommended untuk Development)
+Buka browser: `http://localhost:8080`
 
-Deploy folder `dist/` ke static hosting:
-- Vercel
-- Netlify
-- GitHub Pages
-- Cloudflare Pages
+## 📦 Installation Methods
+
+### Method 1: Automated Installer
 
 ```bash
-# Contoh deploy ke Vercel
-npm install -g vercel
-vercel --prod
-```
-
-### Option 2: Self-Hosted di Odroid C2 (Production)
-
-#### A. Menggunakan Docker (Paling Mudah)
-
-```bash
-# Build Docker image
-docker build -t cutefinance-pwa .
-
-# Jalankan container
-docker run -d \
-  --name cutefinance \
-  -p 8080:80 \
-  --restart unless-stopped \
-  cutefinance-pwa
-
-# Akses via: http://<odroid-ip>:8080
-```
-
-#### B. Manual Deployment dengan Nginx
-
-```bash
-# 1. Build aplikasi
-npm run build
-
-# 2. Copy folder dist ke server
-scp -r dist/* user@odroid-ip:/var/www/cutefinance/
-
-# 3. Setup Nginx
-sudo nano /etc/nginx/sites-available/cutefinance
-```
-
-Konfigurasi Nginx:
-```nginx
-server {
-    listen 8080;
-    server_name _;
-    root /var/www/cutefinance;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Cache static assets
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # Enable gzip
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
-}
-```
-
-```bash
-# 4. Enable site
-sudo ln -s /etc/nginx/sites-available/cutefinance /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-
-# 5. Akses via: http://<odroid-ip>:8080
-```
-
-### Option 3: Tailscale Access (Secure Remote Access)
-
-```bash
-# 1. Install Tailscale di Odroid
-curl -fsSL https://tailscale.com/install.sh | sh
-sudo tailscale up
-
-# 2. Aplikasi sudah accessible via Tailscale IP
-# Contoh: http://100.x.y.z:8080
-
-# 3. (Opsional) Setup HTTPS dengan Tailscale
-sudo tailscale cert cutefinance.ts.net
-```
-
-## 🛠️ Installer Script (Automated Setup)
-
-Gunakan installer script untuk setup otomatis:
-
-```bash
-# Download installer
-curl -O https://raw.githubusercontent.com/yourusername/cutefinance-pwa/main/install.sh
-
-# Berikan permission executable
 chmod +x install.sh
-
-# Jalankan installer
 ./install.sh
 ```
 
 Installer akan:
-- ✅ Cek dependency (Node.js, npm)
-- ✅ Install dependencies
-- ✅ Build aplikasi
-- ✅ Setup Nginx (jika dipilih)
+- ✅ Check & install Go
+- ✅ Check & install Node.js (optional)
+- ✅ Download dependencies
+- ✅ Build frontend & backend
+- ✅ Run TUI installer (port, mascot preview, systemd)
 - ✅ Configure firewall
-- ✅ Setup systemd service (opsional)
-- ✅ Generate SSL certificate (opsional)
+- ✅ Setup Tailscale (optional)
+
+### Method 2: Docker
+
+```bash
+# Build image
+make docker
+
+# Run container
+make docker-run
+
+# Access: http://localhost:8080
+```
+
+### Method 3: Manual Build
+
+```bash
+# 1. Install Go 1.22+
+# 2. Clone repository
+git clone https://github.com/yourusername/cutefinance-pwa.git
+cd cutefinance-pwa
+
+# 3. Download dependencies
+go mod download
+
+# 4. Build frontend (optional)
+cd frontend && npm install && npm run build && cd ..
+cp -r frontend/dist ./dist
+
+# 5. Build Go binary
+go build -ldflags="-w -s" -o cute-finance ./cmd/server
+
+# 6. Run
+./cute-finance
+```
+
+### Method 4: Cross-compile untuk ARM64 (Odroid C2)
+
+```bash
+# Build di machine x86_64
+GOOS=linux GOARCH=arm64 go build -ldflags="-w -s" -o cute-finance ./cmd/server
+
+# Copy ke Odroid C2
+scp cute-finance odroid@<ip>:/home/odroid/
+
+# SSH ke Odroid dan jalankan
+ssh odroid@<ip>
+./cute-finance
+```
+
+## 📁 Project Structure
+
+```
+cutefinance-pwa/
+├── cmd/server/          # Go entry point
+│   └── main.go
+├── internal/
+│   ├── models/          # Data models
+│   ├── database/        # SQLite setup
+│   ├── handlers/        # API handlers
+│   └── installer/       # TUI installer
+├── src/                 # React frontend
+│   ├── components/      # React components
+│   ├── App.tsx
+│   └── ...
+├── public/              # PWA assets
+├── docs/                # Documentation
+├── go.mod               # Go modules
+├── Makefile             # Build commands
+├── Dockerfile           # Docker build
+└── install.sh           # Installer script
+```
+
+## 🔧 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Health check |
+| GET | `/api/profile` | Get user profile |
+| POST | `/api/profile` | Save user profile |
+| GET | `/api/transactions` | Get all transactions |
+| POST | `/api/transactions` | Add transaction |
+| DELETE | `/api/transactions/{id}` | Delete transaction |
+| GET | `/api/budget` | Get monthly budget |
+| POST | `/api/budget` | Save budget |
+| GET | `/api/export` | Export all data |
+| POST | `/api/import` | Import data |
+
+## 🛠️ Makefile Commands
+
+```bash
+make build           # Build application
+make build-arm64     # Build for ARM64
+make run             # Build and run
+make run-port PORT=9090  # Run with custom port
+make install-tui     # Run TUI installer
+make test            # Run tests
+make clean           # Clean build artifacts
+make docker          # Build Docker image
+make docker-run      # Run Docker container
+make deps            # Install Go dependencies
+make fmt             # Format code
+make frontend        # Build frontend
+make help            # Show all commands
+```
 
 ## 📱 Cara Menggunakan
 
-### 1. Setup Wizard (First Time)
+### First Time Setup
+1. Buka aplikasi di browser
+2. Pilih maskot (Panda/Shiba/Bunny/Capybara/Cat)
+3. Set mata uang (IDR/USD/EUR/JPY)
+4. Input tanggal gajian
+5. Pilih budget method
+6. Input pendapatan bulanan
 
-Saat pertama kali membuka aplikasi:
+### Menambah Transaksi
+1. Tap tombol **+** (FAB)
+2. Pilih Expense/Income
+3. Input nominal
+4. Pilih kategori & account
+5. Tap Record
 
-1. **Pilih Maskot**: Pilih karakter pendamping (Panda, Shiba, Bunny, Capybara, atau Cat)
-2. **Pilih Mata Uang**: Default IDR/Rupiah
-3. **Set Tanggal Gajian**: Input tanggal gajian (1-31)
-4. **Pilih Budget Method**: 
-   - 50/30/20 Rule
-   - Zero-Based Budget
-   - Custom Allocation
-5. **Input Monthly Income**: Masukkan pendapatan bulanan
+## 🖥️ Deployment di Odroid C2
 
-### 2. Menambah Transaksi
-
-1. Tap tombol **+** (FAB) di pojok kanan bawah
-2. Pilih tipe: Expense atau Income
-3. Input nominal (atau gunakan quick amount buttons)
-4. Pilih kategori (Food, Bills, Transport, dll)
-5. Pilih metode pembayaran (Cash, Bank, E-Wallet)
-6. Tambahkan catatan (opsional)
-7. Tap "Record" untuk menyimpan
-
-### 3. Melihat Dashboard
-
-- **Balance Card**: Lihat sisa budget bulan ini
-- **Donut Chart**: Visualisasi spending per kategori
-- **Budget Progress**: Progress bar per kategori
-- **Recent Activity**: Daftar transaksi terbaru
-- **Savings Goal**: Target tabungan 20% dari income
-
-### 4. Statistik
-
-- **Daily Trend**: Grafik spending 7 hari terakhir
-- **Category Breakdown**: Detail spending per kategori
-- **Account Breakdown**: Spending per metode pembayaran
-- **Budget Health**: Status compliance (🟢 Good, 🟡 Warning, 🔴 Over)
-
-### 5. Pengaturan
-
-- Edit profil (maskot, currency, payday, budget rule)
-- Export data (JSON/CSV)
-- Import data
-- Reset semua data
-
-## 🎨 Customization
-
-### Mengganti Warna Tema
-
-Edit `src/index.css`:
-
-```css
-@theme {
-  --color-pastel-yellow: #FFF9C4;  /* Ganti warna ini */
-  --color-pastel-pink: #F8BBD0;
-  --color-pastel-mint: #C8E6C9;
-  /* ... */
-}
-```
-
-### Menambah Kategori Baru
-
-Edit `src/store.ts`:
-
-```typescript
-export const CATEGORY_COLORS: Record<CategoryType, string> = {
-  // ... existing categories
-  'new-category': '#FF6B6B',  // Tambah di sini
-};
-
-export const CATEGORY_ICONS: Record<CategoryType, string> = {
-  // ... existing categories
-  'new-category': '🎯',  // Tambah emoji
-};
-```
-
-### Mengganti Mascot
-
-Edit `src/components/Mascot.tsx` untuk menambah atau mengubah mascot SVG.
-
-## 🔧 Troubleshooting
-
-### Aplikasi tidak bisa di-install sebagai PWA
-
-**Solusi:**
-- Pastikan menggunakan HTTPS (kecuali localhost)
-- Clear browser cache
-- Cek manifest.json sudah benar
-- Pastikan service worker terdaftar
-
-### Data hilang setelah refresh
-
-**Penyebab:** Data disimpan di localStorage browser
-
-**Solusi:**
-- Export data secara berkala (Settings > Export Data)
-- Gunakan fitur backup otomatis (coming soon)
-
-### Build error di ARM64
-
-**Solusi:**
 ```bash
-# Install build dependencies
-sudo apt-get update
-sudo apt-get install -y build-essential python3
+# 1. Cross-compile di development machine
+GOOS=linux GOARCH=arm64 go build -ldflags="-w -s" -o cute-finance ./cmd/server
 
-# Clear npm cache
-npm cache clean --force
+# 2. Copy ke Odroid
+scp cute-finance odroid@<ip>:~/
 
-# Reinstall
-rm -rf node_modules package-lock.json
-npm install
+# 3. SSH ke Odroid
+ssh odroid@<ip>
+
+# 4. Jalankan
+./cute-finance -install
+
+# 5. (Optional) Setup Tailscale
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
 ```
 
-### Service Worker tidak update
-
-**Solusi:**
-```javascript
-// Di browser console
-navigator.serviceWorker.getRegistrations().then(function(registrations) {
-  for(let registration of registrations) {
-    registration.unregister();
-  }
-});
-// Refresh halaman
-```
+Panduan lengkap: [docs/DEPLOYMENT-ODROID.md](docs/DEPLOYMENT-ODROID.md)
 
 ## 📊 Database Schema
 
-Aplikasi menggunakan localStorage dengan struktur:
+SQLite database disimpan di `./data/cutefinance.db`:
 
-```typescript
-// User Profile
-{
-  mascot: 'panda' | 'shiba' | 'bunny' | 'capybara' | 'cat',
-  currency: 'IDR' | 'USD' | 'EUR' | 'JPY',
-  paydayDate: number,  // 1-31
-  budgetRule: '50-30-20' | 'zero-based' | 'custom',
-  monthlyIncome: number,
-  setupComplete: boolean
-}
+```sql
+-- User Profile
+CREATE TABLE user_profile (
+    id INTEGER PRIMARY KEY,
+    mascot TEXT,
+    currency TEXT,
+    payday_date INTEGER,
+    budget_rule TEXT,
+    monthly_income REAL,
+    setup_complete INTEGER
+);
 
-// Transaction
-{
-  id: string,
-  amount: number,
-  category: CategoryType,
-  account: 'cash' | 'bank' | 'ewallet',
-  note: string,
-  date: string,  // YYYY-MM-DD
-  type: 'expense' | 'income'
-}
+-- Transactions
+CREATE TABLE transactions (
+    id TEXT PRIMARY KEY,
+    amount REAL,
+    category TEXT,
+    account TEXT,
+    note TEXT,
+    date TEXT,
+    type TEXT
+);
 
-// Monthly Budget
-{
-  month: string,  // YYYY-MM
-  categories: BudgetCategory[],
-  totalIncome: number,
-  totalSpent: number
-}
+-- Monthly Budgets
+CREATE TABLE monthly_budgets (
+    id INTEGER PRIMARY KEY,
+    month TEXT UNIQUE,
+    total_income REAL,
+    total_spent REAL
+);
+
+-- Budget Categories
+CREATE TABLE budget_categories (
+    id INTEGER PRIMARY KEY,
+    budget_id INTEGER,
+    category TEXT,
+    limit_amount REAL,
+    spent REAL,
+    color TEXT,
+    FOREIGN KEY (budget_id) REFERENCES monthly_budgets(id)
+);
 ```
 
-## 🤝 Contributing
+## 🔒 Security
 
-Contributions are welcome! Silakan buat pull request atau buka issue untuk saran/perbaikan.
-
-### Development Guidelines
-
-1. Fork repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open Pull Request
-
-## 📝 License
-
-MIT License - see [LICENSE](LICENSE) file for details
-
-## 🙏 Acknowledgments
-
-- Font: [Nunito](https://fonts.google.com/specimen/Nunito) by Vernon Adams
-- Icons: EmojiOne & custom SVG
-- Inspiration: Cute finance apps & Japanese kawaii aesthetic
+- Single binary deployment (no external dependencies)
+- SQLite with WAL mode for performance
+- CORS configurable
+- No authentication by default (add middleware as needed)
+- Tailscale recommended for secure remote access
 
 ## 📞 Support
 
-Untuk pertanyaan atau bantuan:
-- Buka issue di GitHub
-- Email: support@cutefinance.app
-- Discord: [Join our community](https://discord.gg/cutefinance)
+- **Documentation**: [README.md](README.md), [INSTALL.md](INSTALL.md)
+- **Issues**: GitHub Issues
+- **Email**: support@cutefinance.app
 
-## 🗺️ Roadmap
+## 📝 License
 
-- [ ] Multi-currency support
-- [ ] Recurring transactions
-- [ ] Budget templates
-- [ ] Data sync across devices
-- [ ] Dark mode
-- [ ] More mascots & animations
-- [ ] AI-powered spending insights
-- [ ] Export to popular accounting software
-- [ ] Multi-language support
+MIT License - see [LICENSE](LICENSE) file
 
 ---
 
-Made with 🐾 by CuteFinance Team
+Made with 🐾 and Go

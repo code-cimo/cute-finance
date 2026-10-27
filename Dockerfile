@@ -1,43 +1,47 @@
-# CuteFinance PWA Dockerfile
-# Multi-stage build untuk production
-
-# Stage 1: Build
-FROM node:20-alpine AS builder
+# Build stage
+FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Install build dependencies
+RUN apk add --no-cache git
 
-# Install dependencies
-RUN npm ci --only=production
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
 
 # Copy source code
 COPY . .
 
-# Build application
-RUN npm run build
+# Build frontend first (if npm is available)
+# Note: In production, build frontend separately and copy dist/ folder
 
-# Stage 2: Production
-FROM nginx:alpine
+# Build Go binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o /cute-finance ./cmd/server
 
-# Copy custom nginx config
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+# Final stage
+FROM alpine:latest
 
-# Copy built files from builder
-COPY --from=builder /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-# Copy PWA assets
-COPY --from=builder /app/public/manifest.json /usr/share/nginx/html/manifest.json
-COPY --from=builder /app/public/sw.js /usr/share/nginx/html/sw.js
-COPY --from=builder /app/public/icons /usr/share/nginx/html/icons
+# Install runtime dependencies
+RUN apk add --no-cache ca-certificates tzdata
+
+# Copy binary
+COPY --from=builder /cute-finance /app/cute-finance
+
+# Copy frontend (build separately)
+# COPY dist/ /app/dist/
+
+# Create data directory
+RUN mkdir -p /app/data
 
 # Expose port
-EXPOSE 80
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Run binary
+CMD ["/app/cute-finance"]
