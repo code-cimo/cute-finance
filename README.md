@@ -54,66 +54,86 @@ Aplikasi manajemen keuangan pribadi berbasis PWA dengan **authentication system*
 
 ## 🚀 Quick Start
 
-### Linux Installation (Recommended)
+### Step 1: Fix Dependencies (Jika Ada Error)
+
+Jika muncul error `missing go.sum entry`:
 
 ```bash
-# 1. Clone atau copy repository
-git clone https://github.com/yourusername/cutefinance-pwa.git
-cd cutefinance-pwa
+# Jalankan fix script
+chmod +x fix-dependencies.sh
+./fix-dependencies.sh
+```
 
-# 2. Jalankan installer
+Script ini akan:
+- ✅ Remove old go.sum
+- ✅ Clean module cache
+- ✅ Download dependencies
+- ✅ Generate go.sum yang valid
+- ✅ Verify modules
+
+### Step 2: Build dengan TUI
+
+```bash
+# Jalankan build script dengan TUI interaktif
+chmod +x build-all-platforms.sh
+./build-all-platforms.sh
+```
+
+**TUI Menu:**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🎯 Select Platforms to Build
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1) 🖥️  Current Platform
+  2) 🐧 Linux ARM64 (Odroid C2, Raspberry Pi)
+  3) 🐧 Linux AMD64 (x86_64)
+  4) 🪟 Windows AMD64
+  5) 🍎 macOS ARM64 (Apple Silicon)
+  6) 🍎 macOS AMD64 (Intel)
+  7) 🌍 Build ALL Platforms
+  0) ❌ Exit
+
+💡 Tips:
+  • Enter multiple numbers (e.g., '1 2 3')
+  • Or enter '7' to build all
+```
+
+### Step 3: Install
+
+```bash
+# Jalankan installer
 chmod +x install.sh
 ./install.sh
 
-# 3. Follow TUI prompts
-#    - Pilih mode: Update/Reinstall/Fresh Install
-#    - Set port (default: 8080)
-#    - Set data directory
-#    - Optional: Create systemd service
-
-# 4. Access: http://localhost:<port>
+# Follow TUI prompts:
+# - Pilih mode: Update/Reinstall/Fresh
+# - Set port
+# - Set data directory
+# - Optional: Create systemd service
 ```
 
-### Smart Installer Features
+### Step 4: Access
 
-Installer akan **otomatis mendeteksi** jika aplikasi sudah terinstall dan memberikan pilihan:
+Buka browser: `http://localhost:<port>`
 
-1. **🔄 Update/Upgrade** - Keep data & config, replace binary only
-2. **🔁 Reinstall** - Keep data, reset config & binary
-3. **🗑️ Fresh Install** - Delete everything & start fresh
-4. **❌ Cancel** - Batalkan instalasi
+---
 
-### Manual Installation
+### Alternative: Manual Installation
 
+**Linux:**
 ```bash
-# 1. Install dependencies
-go mod download
-npm install
+# 1. Fix dependencies
+./fix-dependencies.sh
 
-# 2. Build frontend
-npm run build
-
-# 3. Build backend
+# 2. Build
 go build -ldflags="-w -s" -o cute-finance ./cmd/server
 
-# 4. Run
-./cute-finance -install
-```
+# 3. Install
+chmod +x install.sh
+./install.sh
 
-### Cross-Platform Build
-
-```bash
-# Build untuk semua platform
-chmod +x build-all-platforms.sh
-./build-all-platforms.sh
-
-# Output:
-# cute-finance                      # Current platform
-# cute-finance-linux-arm64          # Odroid C2, Raspberry Pi
-# cute-finance-linux-amd64          # Linux x86_64
-# cute-finance-windows-amd64.exe    # Windows
-# cute-finance-darwin-arm64         # macOS Apple Silicon
-# cute-finance-darwin-amd64         # macOS Intel
+# 4. Access: http://localhost:<port>
 ```
 
 ## 📱 Cara Menggunakan
@@ -181,24 +201,26 @@ Setelah login pertama kali:
 ### Linux Installation (Odroid C2 / Raspberry Pi)
 
 ```bash
-# Di development machine
+# 1. Fix dependencies
+./fix-dependencies.sh
+
+# 2. Build untuk ARM64
 GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build \
   -ldflags="-w -s" \
   -o cute-finance-linux-arm64 ./cmd/server
 
-# Copy ke Odroid
+# 3. Copy ke Odroid
 scp cute-finance-linux-arm64 odroid@<ip>:~/cute-finance
 scp install.sh uninstaller-linux.sh odroid@<ip>:~/
 
-# Di Odroid
+# 4. Di Odroid
 ssh odroid@<ip>
 chmod +x install.sh
 ./install.sh
 
-# Follow TUI prompts
-# Access: http://localhost:<port>
+# 5. Access: http://localhost:<port>
 
-# Uninstall:
+# 6. Uninstall:
 chmod +x uninstaller-linux.sh
 ./uninstaller-linux.sh
 ```
@@ -206,14 +228,22 @@ chmod +x uninstaller-linux.sh
 ### Windows Installation (Manual)
 
 ```cmd
-:: 1. Copy binary ke Windows
+:: 1. Fix dependencies
+fix-dependencies.sh
+
+:: 2. Build
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build ^
+  -ldflags="-w -s" ^
+  -o cute-finance-windows-amd64.exe ./cmd/server
+
+:: 3. Copy ke Windows
 ::    cute-finance-windows-amd64.exe
 
-:: 2. Run installer
+:: 4. Run installer
 cute-finance-windows-amd64.exe -install
 
-:: 3. Follow prompts
-:: 4. Access: http://localhost:<port>
+:: 5. Follow prompts
+:: 6. Access: http://localhost:<port>
 ```
 
 ### Docker
@@ -341,6 +371,9 @@ CREATE TABLE monthly_budgets (
 ### Backend (Go)
 
 ```bash
+# Fix dependencies
+./fix-dependencies.sh
+
 # Run server
 go run ./cmd/server
 
@@ -399,9 +432,10 @@ cutefinance-pwa/
 ├── public/                  # PWA assets
 ├── dist/                    # Built frontend
 ├── data/                    # SQLite database
+├── fix-dependencies.sh      # Fix go.sum & dependencies
 ├── install.sh               # Linux installer (TUI with smart detection)
 ├── uninstaller-linux.sh     # Linux uninstaller
-├── build-all-platforms.sh   # Cross-platform build
+├── build-all-platforms.sh   # Cross-platform build with TUI
 ├── go.mod                   # Go modules
 ├── package.json             # Node.js dependencies
 └── README.md                # This file
@@ -409,14 +443,29 @@ cutefinance-pwa/
 
 ## 📚 Documentation
 
+- **[FIX-GO-SUM.md](FIX-GO-SUM.md)** - Fix missing go.sum error
 - **[CROSS-PLATFORM-INSTALL.md](CROSS-PLATFORM-INSTALL.md)** - Panduan instalasi cross-platform
 - **[docs/CROSS-PLATFORM.md](docs/CROSS-PLATFORM.md)** - Detail deployment per platform
 - **[INSTALL.md](INSTALL.md)** - Installation guide lengkap
 - **[USAGE.md](USAGE.md)** - Usage guide
 - **[UPGRADE-v2.0.md](UPGRADE-v2.0.md)** - Upgrade guide dari v1.0
-- **[INSTALLER-SUMMARY.md](INSTALLER-SUMMARY.md)** - Summary installer & uninstaller
 
 ## 🆘 Troubleshooting
+
+### Error: missing go.sum entry
+
+**Solution:**
+```bash
+# Jalankan fix script
+chmod +x fix-dependencies.sh
+./fix-dependencies.sh
+
+# Atau manual
+rm -f go.sum
+go clean -modcache
+go mod download
+go mod tidy
+```
 
 ### Existing Installation Detected
 
@@ -457,10 +506,11 @@ ls -la data/cutefinance.db
 ### Build errors
 
 ```bash
+# Fix dependencies
+./fix-dependencies.sh
+
 # Clean and rebuild
-rm -f cute-finance go.sum
-go mod download
-go mod tidy
+rm -f cute-finance
 go build -o cute-finance ./cmd/server
 ```
 
@@ -495,7 +545,7 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## 📊 Version History
 
-- **v2.0.0** (2024) - Authentication, multi-device, cross-platform, smart installer
+- **v2.0.0** (2024) - Authentication, multi-device, cross-platform, smart installer, TUI build
 - **v1.0.0** (2024) - Initial release
 
 ---
