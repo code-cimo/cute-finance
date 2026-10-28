@@ -20,7 +20,7 @@ import (
 	"github.com/go-chi/cors"
 )
 
-const AppVersion = "1.0.0"
+const AppVersion = "2.0.0"
 
 // Config holds application configuration
 type Config struct {
@@ -94,6 +94,7 @@ func main() {
 	log.Printf("📡 Server running on http://localhost%s", addr)
 	log.Printf("💾 Database: %s", dbPath)
 	log.Printf("📁 Data directory: %s", config.DataDir)
+	log.Printf("🔐 Authentication: Enabled")
 
 	// Graceful shutdown
 	go func() {
@@ -155,33 +156,44 @@ func setupRouter(db *sql.DB) *chi.Mux {
 		MaxAge:           300,
 	}))
 
-	// API routes
-	h := handlers.New(db)
+	// Initialize handlers
+	authHandler := handlers.NewAuthHandler(db)
+	dataHandler := handlers.New(db, authHandler)
 
-	r.Route("/api", func(r chi.Router) {
+	// Public routes (no auth required)
+	r.Post("/api/auth/register", authHandler.Register)
+	r.Post("/api/auth/login", authHandler.Login)
+	r.Post("/api/auth/logout", authHandler.Logout)
+
+	// Protected routes (auth required)
+	r.Group(func(r chi.Router) {
+		r.Use(authHandler.AuthMiddleware)
+
 		// Profile
-		r.Get("/profile", h.GetProfile)
-		r.Post("/profile", h.SaveProfile)
+		r.Get("/api/profile", dataHandler.GetProfile)
+		r.Post("/api/profile", dataHandler.SaveProfile)
 
 		// Transactions
-		r.Get("/transactions", h.GetTransactions)
-		r.Post("/transactions", h.AddTransaction)
-		r.Delete("/transactions/{id}", h.DeleteTransaction)
+		r.Get("/api/transactions", dataHandler.GetTransactions)
+		r.Post("/api/transactions", dataHandler.AddTransaction)
+		r.Delete("/api/transactions/{id}", dataHandler.DeleteTransaction)
 
 		// Budget
-		r.Get("/budget", h.GetBudget)
-		r.Post("/budget", h.SaveBudget)
+		r.Get("/api/budget", dataHandler.GetBudget)
+		r.Post("/api/budget", dataHandler.SaveBudget)
 
-		// Export/Import
-		r.Get("/export", h.ExportData)
-		r.Post("/import", h.ImportData)
+		// Sync
+		r.Post("/api/sync", dataHandler.SyncData)
 
-		// Health check
-		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-			json.NewEncoder(w).Encode(map[string]string{
-				"status":  "ok",
-				"version": AppVersion,
-			})
+		// Export
+		r.Get("/api/export", dataHandler.ExportData)
+	})
+
+	// Health check (public)
+	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "ok",
+			"version": AppVersion,
 		})
 	})
 
@@ -233,7 +245,7 @@ func serveFrontend(r *chi.Mux) {
 <body>
     <div class="container">
         <div class="mascot">🐾</div>
-        <h1>CuteFinance PWA</h1>
+        <h1>CuteFinance PWA v%s</h1>
         <p><strong>Backend is running!</strong> ✅</p>
         <p>But frontend needs to be built first.</p>
         
@@ -247,7 +259,6 @@ func serveFrontend(r *chi.Mux) {
         <h3>🔌 API Endpoints:</h3>
         <p>
             <a href="/api/health" class="btn">/api/health</a>
-            <a href="/api/profile" class="btn">/api/profile</a>
         </p>
         
         <p style="margin-top: 30px; color: #999; font-size: 12px;">
@@ -255,6 +266,6 @@ func serveFrontend(r *chi.Mux) {
         </p>
     </div>
 </body>
-</html>`, AppVersion)
+</html>`, AppVersion, AppVersion)
 	})
 }

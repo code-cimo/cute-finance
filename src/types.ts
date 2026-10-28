@@ -19,6 +19,7 @@ export interface UserProfile {
 
 export interface Transaction {
   id: string;
+  userId?: number;
   amount: number;
   category: CategoryType;
   account: AccountType;
