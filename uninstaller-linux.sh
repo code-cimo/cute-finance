@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# CuteFinance PWA - Linux Uninstaller
+# CuteFinance PWA - Smart Uninstaller
 # Version 2.0.0
 
 # Colors
@@ -22,13 +22,38 @@ echo -e "${NC}"
 echo -e "${YELLOW}🐾 CuteFinance PWA Uninstaller v2.0.0${NC}"
 echo ""
 
-# Warning
-echo -e "${YELLOW}⚠️  WARNING: This will uninstall CuteFinance PWA${NC}"
+# Check what exists
+EXISTING_BINARY=false
+EXISTING_SERVICE=false
+EXISTING_DATA=false
+EXISTING_CONFIG=false
+EXISTING_NODE=false
+
+[ -f "cute-finance" ] && EXISTING_BINARY=true
+[ -f "/etc/systemd/system/cutefinance.service" ] && EXISTING_SERVICE=true
+[ -d "data" ] && EXISTING_DATA=true
+[ -f "data/config.json" ] && EXISTING_CONFIG=true
+[ -d "node_modules" ] && EXISTING_NODE=true
+
+# If nothing exists
+if [ "$EXISTING_BINARY" = false ] && [ "$EXISTING_SERVICE" = false ] && [ "$EXISTING_DATA" = false ]; then
+    echo -e "${YELLOW}ℹ️  No CuteFinance installation found${NC}"
+    echo ""
+    echo "Nothing to uninstall."
+    exit 0
+fi
+
+# Show what exists
+echo -e "${YELLOW}Found installation:${NC}"
+[ "$EXISTING_BINARY" = true ] && echo "  • Binary: cute-finance"
+[ "$EXISTING_SERVICE" = true ] && echo "  • Service: cutefinance (systemd)"
+[ "$EXISTING_DATA" = true ] && echo "  • Data: ./data/"
+[ "$EXISTING_CONFIG" = true ] && echo "  • Config: data/config.json"
+[ "$EXISTING_NODE" = true ] && echo "  • Node modules: ./node_modules/"
 echo ""
-echo "This will:"
-echo "  • Stop the server if running"
-echo "  • Remove systemd service (if exists)"
-echo "  • Optionally delete all data"
+
+# Warning
+echo -e "${RED}⚠️  WARNING: This will uninstall CuteFinance PWA${NC}"
 echo ""
 
 # Confirmation
@@ -41,25 +66,25 @@ fi
 
 echo ""
 
-# Step 1: Stop server
+# ============================================
+# STEP 1: Stop server
+# ============================================
 echo -e "${BLUE}[1/5] Stopping server...${NC}"
-pkill -f cute-finance 2>/dev/null
-if [ $? -eq 0 ]; then
+if pgrep -f "cute-finance" > /dev/null; then
+    pkill -f cute-finance
     echo -e "${GREEN}✅ Server stopped${NC}"
 else
     echo -e "${NC}ℹ️  Server not running${NC}"
 fi
 echo ""
 
-# Step 2: Stop and remove systemd service
+# ============================================
+# STEP 2: Remove systemd service
+# ============================================
 echo -e "${BLUE}[2/5] Removing systemd service...${NC}"
-if systemctl is-active --quiet cutefinance 2>/dev/null; then
-    sudo systemctl stop cutefinance
-    echo -e "${GREEN}✅ Service stopped${NC}"
-fi
-
-if [ -f "/etc/systemd/system/cutefinance.service" ]; then
-    sudo systemctl disable cutefinance 2>/dev/null
+if [ "$EXISTING_SERVICE" = true ]; then
+    sudo systemctl stop cutefinance 2>/dev/null || true
+    sudo systemctl disable cutefinance 2>/dev/null || true
     sudo rm -f /etc/systemd/system/cutefinance.service
     sudo systemctl daemon-reload
     echo -e "${GREEN}✅ Systemd service removed${NC}"
@@ -68,97 +93,130 @@ else
 fi
 echo ""
 
-# Step 3: Remove binary
+# ============================================
+# STEP 3: Remove binary
+# ============================================
 echo -e "${BLUE}[3/5] Removing binary files...${NC}"
-if [ -f "cute-finance" ]; then
+if [ "$EXISTING_BINARY" = true ]; then
     rm -f cute-finance
     echo -e "${GREEN}✅ Binary removed${NC}"
 else
     echo -e "${NC}ℹ️  Binary not found${NC}"
 fi
 
-if [ -f "cute-finance-arm64" ]; then
-    rm -f cute-finance-arm64
-    echo -e "${GREEN}✅ ARM64 binary removed${NC}"
-fi
-
-if [ -f "cute-finance-amd64" ]; then
-    rm -f cute-finance-amd64
-    echo -e "${GREEN}✅ AMD64 binary removed${NC}"
-fi
+# Remove other binaries
+for binary in cute-finance-linux-arm64 cute-finance-linux-amd64 cute-finance-arm64 cute-finance-amd64; do
+    if [ -f "$binary" ]; then
+        rm -f "$binary"
+        echo -e "${GREEN}✅ Removed: $binary${NC}"
+    fi
+done
 echo ""
 
-# Step 4: Delete data (optional)
+# ============================================
+# STEP 4: Data Management
+# ============================================
 echo -e "${BLUE}[4/5] Data Management${NC}"
 echo ""
-read -p "Do you want to delete all data? (y/n) " -n 1 -r
-echo
-echo -e "${YELLOW}⚠️  WARNING: This cannot be undone!${NC}"
 
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+if [ "$EXISTING_DATA" = true ]; then
+    echo -e "${YELLOW}What would you like to do with your data?${NC}"
     echo ""
-    read -p "Are you REALLY sure? Type 'YES' to confirm: " FINAL_CONFIRM
+    echo "  1) 🗑️  Delete all data (database, config, everything)"
+    echo "  2) 💾 Keep data (preserve database and config)"
+    echo ""
+    read -p "Choose option (1-2): " DATA_CHOICE
     
-    if [ "$FINAL_CONFIRM" = "YES" ]; then
-        echo ""
-        echo "Deleting data..."
-        
-        if [ -d "data" ]; then
-            rm -rf data
-            echo -e "${GREEN}✅ Data directory deleted${NC}"
-        else
-            echo -e "${NC}ℹ️  Data directory not found${NC}"
-        fi
-        
-        if [ -d "dist" ]; then
-            rm -rf dist
-            echo -e "${GREEN}✅ Frontend build deleted${NC}"
-        else
-            echo -e "${NC}ℹ️  Frontend build not found${NC}"
-        fi
-    else
-        echo "Data deletion cancelled."
-        echo "Data preserved in: ./data"
-    fi
+    case $DATA_CHOICE in
+        1)
+            echo ""
+            echo -e "${RED}⚠️  WARNING: This will DELETE all data permanently!${NC}"
+            read -p "Are you REALLY sure? Type 'YES' to confirm: " FINAL_CONFIRM
+            
+            if [ "$FINAL_CONFIRM" = "YES" ]; then
+                echo ""
+                echo "Deleting data..."
+                
+                if [ -d "data" ]; then
+                    rm -rf data
+                    echo -e "${GREEN}✅ Data directory deleted${NC}"
+                fi
+                
+                if [ -d "dist" ]; then
+                    rm -rf dist
+                    echo -e "${GREEN}✅ Frontend build deleted${NC}"
+                fi
+            else
+                echo "Data deletion cancelled."
+                echo "Data preserved in: ./data"
+            fi
+            ;;
+        2|*)
+            echo "Data preserved in: ./data"
+            ;;
+    esac
 else
-    echo "Data preserved in: ./data"
+    echo -e "${NC}ℹ️  No data found${NC}"
 fi
+
 echo ""
 
-# Step 5: Cleanup (optional)
+# ============================================
+# STEP 5: Cleanup
+# ============================================
 echo -e "${BLUE}[5/5] Cleanup${NC}"
 echo ""
-read -p "Do you want to delete node_modules? (y/n) " -n 1 -r
-echo
 
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    if [ -d "node_modules" ]; then
+# Node modules
+if [ "$EXISTING_NODE" = true ]; then
+    read -p "Delete node_modules? (y/n) " -n 1 -r
+    echo
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Deleting node_modules..."
         rm -rf node_modules
         echo -e "${GREEN}✅ node_modules deleted${NC}"
     else
-        echo -e "${NC}ℹ️  node_modules not found${NC}"
+        echo "node_modules preserved"
     fi
 else
-    echo "node_modules preserved"
+    echo -e "${NC}ℹ️  node_modules not found${NC}"
+fi
+
+# Log files
+if ls install-*.log 1> /dev/null 2>&1; then
+    echo ""
+    read -p "Delete install log files? (y/n) " -n 1 -r
+    echo
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        rm -f install-*.log
+        echo -e "${GREEN}✅ Log files deleted${NC}"
+    else
+        echo "Log files preserved"
+    fi
 fi
 
 echo ""
 
-# Success message
-echo -e "${GREEN}=========================================${NC}"
+# ============================================
+# SUCCESS MESSAGE
+# ============================================
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${GREEN}  ✅ Uninstallation Complete!${NC}"
-echo -e "${GREEN}=========================================${NC}"
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo -e "${BLUE}📝 Summary:${NC}"
 echo "  • Server stopped"
 echo "  • Systemd service removed"
 echo "  • Binary deleted"
-if [[ $REPLY =~ ^[Yy]$ ]] && [ "$FINAL_CONFIRM" = "YES" ]; then
+
+if [ "$DATA_CHOICE" = "1" ] && [ "$FINAL_CONFIRM" = "YES" ]; then
     echo "  • All data deleted"
 else
     echo "  • Data preserved in: ./data"
 fi
+
 echo ""
 echo -e "${BLUE}💡 To reinstall:${NC}"
 echo "  • Run: ./install.sh"
