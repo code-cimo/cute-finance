@@ -2,6 +2,74 @@ package models
 
 import "time"
 
+// MascotType represents available mascot characters
+type MascotType string
+
+const (
+	MascotPanda    MascotType = "panda"
+	MascotShiba    MascotType = "shiba"
+	MascotBunny    MascotType = "bunny"
+	MascotCapybara MascotType = "capybara"
+	MascotCat      MascotType = "cat"
+)
+
+// Currency represents supported currencies
+type Currency string
+
+const (
+	CurrencyIDR Currency = "IDR"
+	CurrencyUSD Currency = "USD"
+	CurrencyEUR Currency = "EUR"
+	CurrencyJPY Currency = "JPY"
+)
+
+// BudgetRule represents budget allocation methods
+type BudgetRule string
+
+const (
+	BudgetRule503020 BudgetRule = "50-30-20"
+	BudgetRuleZero   BudgetRule = "zero-based"
+	BudgetRuleCustom BudgetRule = "custom"
+)
+
+// CategoryType represents spending categories
+type CategoryType string
+
+const (
+	CategoryFood          CategoryType = "food"
+	CategoryDessert       CategoryType = "dessert"
+	CategoryFruit         CategoryType = "fruit"
+	CategoryDrink         CategoryType = "drink"
+	CategoryBills         CategoryType = "bills"
+	CategoryInterest      CategoryType = "interest"
+	CategoryBonus         CategoryType = "bonus"
+	CategoryTransport     CategoryType = "transport"
+	CategoryShopping      CategoryType = "shopping"
+	CategoryEntertainment CategoryType = "entertainment"
+	CategoryHealth        CategoryType = "health"
+	CategoryEducation     CategoryType = "education"
+	CategoryPetCare       CategoryType = "pet-care"
+	CategoryCharity       CategoryType = "charity"
+	CategoryOther         CategoryType = "other"
+)
+
+// AccountType represents payment methods
+type AccountType string
+
+const (
+	AccountCash    AccountType = "cash"
+	AccountBank    AccountType = "bank"
+	AccountEWallet AccountType = "ewallet"
+)
+
+// TransactionType represents income or expense
+type TransactionType string
+
+const (
+	TransactionExpense TransactionType = "expense"
+	TransactionIncome  TransactionType = "income"
+)
+
 // User represents a registered user
 type User struct {
 	ID           int64     `json:"id"`
