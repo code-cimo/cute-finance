@@ -2,11 +2,9 @@ package main
 
 import (
 	"database/sql"
-	"embed"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -21,9 +19,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
-
-//go:embed dist/*
-var frontendFS embed.FS
 
 const AppVersion = "1.0.0"
 
@@ -68,6 +63,14 @@ func main() {
 	
 	// Ensure DataDir is set
 	config.DataDir = *dataDir
+
+	// Set defaults if config is empty
+	if config.Port == 0 {
+		config.Port = 8080
+	}
+	if config.DataDir == "" {
+		config.DataDir = "./data"
+	}
 
 	// Ensure data directory exists
 	if err := os.MkdirAll(config.DataDir, 0755); err != nil {
@@ -182,16 +185,76 @@ func setupRouter(db *sql.DB) *chi.Mux {
 		})
 	})
 
-	// Serve frontend (embedded)
-	distFS, err := fs.Sub(frontendFS, "dist")
-	if err != nil {
-		log.Printf("⚠️  Warning: Frontend not embedded, serving from disk")
-		fileServer := http.FileServer(http.Dir("./dist"))
-		r.Handle("/*", fileServer)
-	} else {
-		fileServer := http.FileServer(http.FS(distFS))
-		r.Handle("/*", fileServer)
-	}
+	// Serve frontend from disk
+	serveFrontend(r)
 
 	return r
+}
+
+func serveFrontend(r *chi.Mux) {
+	// Check multiple possible locations for frontend
+	locations := []string{
+		"./dist",           // Default build output
+		"./frontend/dist",  // Frontend subdirectory
+		"../dist",          // Parent directory
+	}
+
+	for _, loc := range locations {
+		if info, err := os.Stat(loc); err == nil && info.IsDir() {
+			log.Printf("📂 Serving frontend from: %s", loc)
+			fileServer := http.FileServer(http.Dir(loc))
+			r.Handle("/*", fileServer)
+			return
+		}
+	}
+
+	// No frontend found - serve helpful message
+	log.Println("⚠️  Frontend not found. Please build frontend first:")
+	log.Println("   npm run build")
+	log.Println("   Or copy frontend dist to ./dist")
+	
+	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, `<!DOCTYPE html>
+<html>
+<head>
+    <title>CuteFinance PWA</title>
+    <style>
+        body { font-family: 'Nunito', sans-serif; text-align: center; padding: 50px; background: linear-gradient(180deg, #FFF9C4 0%%, #FFF8E1 50%%, #FFFFFF 100%%); }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #5D4037; }
+        .mascot { font-size: 80px; margin: 20px 0; }
+        code { background: #f5f5f5; padding: 2px 8px; border-radius: 4px; font-family: monospace; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 8px; text-align: left; overflow-x: auto; }
+        .btn { display: inline-block; background: #F8BBD0; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: bold; margin: 10px 5px; }
+        .btn:hover { background: #F48FB1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="mascot">🐾</div>
+        <h1>CuteFinance PWA</h1>
+        <p><strong>Backend is running!</strong> ✅</p>
+        <p>But frontend needs to be built first.</p>
+        
+        <h3>🔨 Build Frontend:</h3>
+        <pre><code>npm run build</code></pre>
+        
+        <p>Then refresh this page or restart the server.</p>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 2px dashed #F8BBD0;">
+        
+        <h3>🔌 API Endpoints:</h3>
+        <p>
+            <a href="/api/health" class="btn">/api/health</a>
+            <a href="/api/profile" class="btn">/api/profile</a>
+        </p>
+        
+        <p style="margin-top: 30px; color: #999; font-size: 12px;">
+            CuteFinance PWA v%s • Made with 🐾
+        </p>
+    </div>
+</body>
+</html>`, AppVersion)
+	})
 }
