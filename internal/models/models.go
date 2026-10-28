@@ -178,3 +178,11 @@ type SyncResponse struct {
 	Budget       *MonthlyBudget `json:"budget"`
 	ServerTime   time.Time      `json:"serverTime"`
 }
+
+// ExportData represents full data export
+type ExportData struct {
+	Profile      *UserProfile  `json:"profile"`
+	Transactions []Transaction `json:"transactions"`
+	Budget       *MonthlyBudget `json:"budget"`
+	ExportDate   time.Time     `json:"exportDate"`
+}

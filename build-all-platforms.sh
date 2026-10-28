@@ -186,17 +186,24 @@ echo ""
 # ============================================
 BUILD_COUNT=0
 SUCCESS_COUNT=0
+FAILED_BUILDS=""
 
 # Build Current Platform
 if [ "$BUILD_CURRENT" = true ]; then
     BUILD_COUNT=$((BUILD_COUNT + 1))
     echo -e "${BLUE}[$BUILD_COUNT] Building for current platform ($(uname -s)-$(uname -m))...${NC}"
     
-    if go build -ldflags="-w -s" -o cute-finance ./cmd/server 2>&1; then
+    BUILD_LOG="build-current-$(date +%Y%m%d-%H%M%S).log"
+    if go build -ldflags="-w -s" -o cute-finance ./cmd/server 2>"$BUILD_LOG"; then
         echo -e "${GREEN}✅ Built: cute-finance ($(ls -lh cute-finance | awk '{print $5}'))${NC}"
         SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+        rm -f "$BUILD_LOG"
     else
         echo -e "${RED}❌ Failed to build current platform${NC}"
+        echo -e "${YELLOW}📝 Error log saved to: $BUILD_LOG${NC}"
+        echo -e "${YELLOW}📋 Last 20 lines of error:${NC}"
+        tail -20 "$BUILD_LOG"
+        FAILED_BUILDS="$FAILED_BUILDS\n  • Current Platform ($(uname -s)-$(uname -m)) - See: $BUILD_LOG"
     fi
     echo ""
 fi
@@ -206,11 +213,17 @@ if [ "$BUILD_LINUX_ARM64" = true ]; then
     BUILD_COUNT=$((BUILD_COUNT + 1))
     echo -e "${BLUE}[$BUILD_COUNT] Building for Linux ARM64...${NC}"
     
-    if GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-w -s" -o cute-finance-linux-arm64 ./cmd/server 2>&1; then
+    BUILD_LOG="build-linux-arm64-$(date +%Y%m%d-%H%M%S).log"
+    if GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-w -s" -o cute-finance-linux-arm64 ./cmd/server 2>"$BUILD_LOG"; then
         echo -e "${GREEN}✅ Built: cute-finance-linux-arm64 ($(ls -lh cute-finance-linux-arm64 | awk '{print $5}'))${NC}"
         SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+        rm -f "$BUILD_LOG"
     else
         echo -e "${RED}❌ Failed to build Linux ARM64${NC}"
+        echo -e "${YELLOW}📝 Error log saved to: $BUILD_LOG${NC}"
+        echo -e "${YELLOW}📋 Last 20 lines of error:${NC}"
+        tail -20 "$BUILD_LOG"
+        FAILED_BUILDS="$FAILED_BUILDS\n  • Linux ARM64 - See: $BUILD_LOG"
     fi
     echo ""
 fi
@@ -220,11 +233,17 @@ if [ "$BUILD_LINUX_AMD64" = true ]; then
     BUILD_COUNT=$((BUILD_COUNT + 1))
     echo -e "${BLUE}[$BUILD_COUNT] Building for Linux AMD64...${NC}"
     
-    if GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-w -s" -o cute-finance-linux-amd64 ./cmd/server 2>&1; then
+    BUILD_LOG="build-linux-amd64-$(date +%Y%m%d-%H%M%S).log"
+    if GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-w -s" -o cute-finance-linux-amd64 ./cmd/server 2>"$BUILD_LOG"; then
         echo -e "${GREEN}✅ Built: cute-finance-linux-amd64 ($(ls -lh cute-finance-linux-amd64 | awk '{print $5}'))${NC}"
         SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+        rm -f "$BUILD_LOG"
     else
         echo -e "${RED}❌ Failed to build Linux AMD64${NC}"
+        echo -e "${YELLOW}📝 Error log saved to: $BUILD_LOG${NC}"
+        echo -e "${YELLOW}📋 Last 20 lines of error:${NC}"
+        tail -20 "$BUILD_LOG"
+        FAILED_BUILDS="$FAILED_BUILDS\n  • Linux AMD64 - See: $BUILD_LOG"
     fi
     echo ""
 fi
@@ -234,11 +253,17 @@ if [ "$BUILD_WINDOWS" = true ]; then
     BUILD_COUNT=$((BUILD_COUNT + 1))
     echo -e "${BLUE}[$BUILD_COUNT] Building for Windows AMD64...${NC}"
     
-    if GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-w -s" -o cute-finance-windows-amd64.exe ./cmd/server 2>&1; then
+    BUILD_LOG="build-windows-amd64-$(date +%Y%m%d-%H%M%S).log"
+    if GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-w -s" -o cute-finance-windows-amd64.exe ./cmd/server 2>"$BUILD_LOG"; then
         echo -e "${GREEN}✅ Built: cute-finance-windows-amd64.exe ($(ls -lh cute-finance-windows-amd64.exe | awk '{print $5}'))${NC}"
         SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+        rm -f "$BUILD_LOG"
     else
         echo -e "${RED}❌ Failed to build Windows AMD64${NC}"
+        echo -e "${YELLOW}📝 Error log saved to: $BUILD_LOG${NC}"
+        echo -e "${YELLOW}📋 Last 20 lines of error:${NC}"
+        tail -20 "$BUILD_LOG"
+        FAILED_BUILDS="$FAILED_BUILDS\n  • Windows AMD64 - See: $BUILD_LOG"
     fi
     echo ""
 fi
@@ -248,11 +273,17 @@ if [ "$BUILD_MACOS_ARM64" = true ]; then
     BUILD_COUNT=$((BUILD_COUNT + 1))
     echo -e "${BLUE}[$BUILD_COUNT] Building for macOS ARM64...${NC}"
     
-    if GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-w -s" -o cute-finance-darwin-arm64 ./cmd/server 2>&1; then
+    BUILD_LOG="build-macos-arm64-$(date +%Y%m%d-%H%M%S).log"
+    if GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-w -s" -o cute-finance-darwin-arm64 ./cmd/server 2>"$BUILD_LOG"; then
         echo -e "${GREEN}✅ Built: cute-finance-darwin-arm64 ($(ls -lh cute-finance-darwin-arm64 | awk '{print $5}'))${NC}"
         SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+        rm -f "$BUILD_LOG"
     else
         echo -e "${RED}❌ Failed to build macOS ARM64${NC}"
+        echo -e "${YELLOW}📝 Error log saved to: $BUILD_LOG${NC}"
+        echo -e "${YELLOW}📋 Last 20 lines of error:${NC}"
+        tail -20 "$BUILD_LOG"
+        FAILED_BUILDS="$FAILED_BUILDS\n  • macOS ARM64 - See: $BUILD_LOG"
     fi
     echo ""
 fi
@@ -262,11 +293,17 @@ if [ "$BUILD_MACOS_AMD64" = true ]; then
     BUILD_COUNT=$((BUILD_COUNT + 1))
     echo -e "${BLUE}[$BUILD_COUNT] Building for macOS AMD64...${NC}"
     
-    if GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-w -s" -o cute-finance-darwin-amd64 ./cmd/server 2>&1; then
+    BUILD_LOG="build-macos-amd64-$(date +%Y%m%d-%H%M%S).log"
+    if GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-w -s" -o cute-finance-darwin-amd64 ./cmd/server 2>"$BUILD_LOG"; then
         echo -e "${GREEN}✅ Built: cute-finance-darwin-amd64 ($(ls -lh cute-finance-darwin-amd64 | awk '{print $5}'))${NC}"
         SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+        rm -f "$BUILD_LOG"
     else
         echo -e "${RED}❌ Failed to build macOS AMD64${NC}"
+        echo -e "${YELLOW}📝 Error log saved to: $BUILD_LOG${NC}"
+        echo -e "${YELLOW}📋 Last 20 lines of error:${NC}"
+        tail -20 "$BUILD_LOG"
+        FAILED_BUILDS="$FAILED_BUILDS\n  • macOS AMD64 - See: $BUILD_LOG"
     fi
     echo ""
 fi
@@ -275,7 +312,11 @@ fi
 # STEP 6: Summary
 # ============================================
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}  ✅ Build Complete!${NC}"
+if [ $SUCCESS_COUNT -eq $BUILD_COUNT ]; then
+    echo -e "${GREEN}  ✅ Build Complete!${NC}"
+else
+    echo -e "${YELLOW}  ⚠️  Build Complete with Errors${NC}"
+fi
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo -e "${BLUE}📊 Build Summary:${NC}"
@@ -283,6 +324,15 @@ echo "  Total builds: $BUILD_COUNT"
 echo "  Successful:   $SUCCESS_COUNT"
 echo "  Failed:       $((BUILD_COUNT - SUCCESS_COUNT))"
 echo ""
+
+# Show failed builds if any
+if [ -n "$FAILED_BUILDS" ]; then
+    echo -e "${RED}❌ Failed Builds:${NC}"
+    echo -e "$FAILED_BUILDS"
+    echo ""
+    echo -e "${YELLOW}💡 Check the log files for detailed error messages${NC}"
+    echo ""
+fi
 
 if [ $SUCCESS_COUNT -gt 0 ]; then
     echo -e "${BLUE}📦 Built binaries:${NC}"
