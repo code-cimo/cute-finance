@@ -47,67 +47,63 @@ Aplikasi manajemen keuangan pribadi berbasis PWA dengan **authentication system*
 - **Streak Counter** - Gamifikasi logging harian
 
 ### 🌐 Cross-Platform
-- **Windows** - Installer & uninstaller `.bat`
-- **Linux** - Installer TUI & uninstaller `.sh`
+- **Linux** - Installer TUI & uninstaller `.sh` dengan smart detection
+- **Windows** - Binary `.exe` (manual install)
 - **macOS** - Binary untuk ARM64 & AMD64
 - **Docker** - Containerized deployment
 
 ## 🚀 Quick Start
 
-### Option 1: Automated Installer (Recommended)
+### Linux Installation (Recommended)
 
-**Windows:**
-```cmd
-:: 1. Copy files ke Windows
-::    - cute-finance-windows-amd64.exe
-::    - installer-windows.bat
-::    - uninstaller-windows.bat
-
-:: 2. Double-click installer-windows.bat
-:: 3. Follow prompts
-:: 4. Access: http://localhost:<port>
-```
-
-**Linux:**
 ```bash
-# 1. Copy files ke Linux
-#    - cute-finance-linux-arm64 (atau amd64)
-#    - install.sh
-#    - uninstaller-linux.sh
+# 1. Clone atau copy repository
+git clone https://github.com/yourusername/cutefinance-pwa.git
+cd cutefinance-pwa
 
 # 2. Jalankan installer
 chmod +x install.sh
 ./install.sh
 
 # 3. Follow TUI prompts
+#    - Pilih mode: Update/Reinstall/Fresh Install
+#    - Set port (default: 8080)
+#    - Set data directory
+#    - Optional: Create systemd service
+
 # 4. Access: http://localhost:<port>
 ```
 
-### Option 2: Build dari Source
+### Smart Installer Features
+
+Installer akan **otomatis mendeteksi** jika aplikasi sudah terinstall dan memberikan pilihan:
+
+1. **🔄 Update/Upgrade** - Keep data & config, replace binary only
+2. **🔁 Reinstall** - Keep data, reset config & binary
+3. **🗑️ Fresh Install** - Delete everything & start fresh
+4. **❌ Cancel** - Batalkan instalasi
+
+### Manual Installation
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/yourusername/cutefinance-pwa.git
-cd cutefinance-pwa
-
-# 2. Install dependencies
+# 1. Install dependencies
 go mod download
 npm install
 
-# 3. Build frontend
+# 2. Build frontend
 npm run build
 
-# 4. Build backend
+# 3. Build backend
 go build -ldflags="-w -s" -o cute-finance ./cmd/server
 
-# 5. Run
+# 4. Run
 ./cute-finance -install
 ```
 
-### Option 3: Build All Platforms
+### Cross-Platform Build
 
 ```bash
-# Build untuk semua platform sekaligus
+# Build untuk semua platform
 chmod +x build-all-platforms.sh
 ./build-all-platforms.sh
 
@@ -176,33 +172,11 @@ Setelah login pertama kali:
 
 | Platform | Architecture | Installer | Uninstaller | Binary |
 |----------|--------------|-----------|-------------|--------|
-| **Windows** | AMD64 | `installer-windows.bat` | `uninstaller-windows.bat` | `cute-finance-windows-amd64.exe` |
 | **Linux** | ARM64 | `install.sh` (TUI) | `uninstaller-linux.sh` | `cute-finance-linux-arm64` |
 | **Linux** | AMD64 | `install.sh` (TUI) | `uninstaller-linux.sh` | `cute-finance-linux-amd64` |
+| **Windows** | AMD64 | Manual | Manual | `cute-finance-windows-amd64.exe` |
 | **macOS** | ARM64 | Manual | Manual | `cute-finance-darwin-arm64` |
 | **macOS** | AMD64 | Manual | Manual | `cute-finance-darwin-amd64` |
-
-### Windows Installation
-
-```cmd
-:: 1. Copy files:
-::    - cute-finance-windows-amd64.exe
-::    - installer-windows.bat
-::    - uninstaller-windows.bat
-
-:: 2. Double-click installer-windows.bat
-
-:: 3. Follow prompts:
-::    - Port (default: 8080)
-::    - Data directory
-::    - Create Windows service? (y/n)
-::    - Create desktop shortcut? (y/n)
-
-:: 4. Access: http://localhost:<port>
-
-:: Uninstall:
-uninstaller-windows.bat
-```
 
 ### Linux Installation (Odroid C2 / Raspberry Pi)
 
@@ -227,6 +201,19 @@ chmod +x install.sh
 # Uninstall:
 chmod +x uninstaller-linux.sh
 ./uninstaller-linux.sh
+```
+
+### Windows Installation (Manual)
+
+```cmd
+:: 1. Copy binary ke Windows
+::    cute-finance-windows-amd64.exe
+
+:: 2. Run installer
+cute-finance-windows-amd64.exe -install
+
+:: 3. Follow prompts
+:: 4. Access: http://localhost:<port>
 ```
 
 ### Docker
@@ -412,9 +399,7 @@ cutefinance-pwa/
 ├── public/                  # PWA assets
 ├── dist/                    # Built frontend
 ├── data/                    # SQLite database
-├── installer-windows.bat    # Windows installer
-├── uninstaller-windows.bat  # Windows uninstaller
-├── install.sh               # Linux installer (TUI)
+├── install.sh               # Linux installer (TUI with smart detection)
 ├── uninstaller-linux.sh     # Linux uninstaller
 ├── build-all-platforms.sh   # Cross-platform build
 ├── go.mod                   # Go modules
@@ -433,51 +418,64 @@ cutefinance-pwa/
 
 ## 🆘 Troubleshooting
 
+### Existing Installation Detected
+
+Jika installer mendeteksi instalasi yang sudah ada, Anda akan diberikan 3 pilihan:
+
+1. **Update/Upgrade** - Keep data & config, replace binary only
+   - Gunakan jika ingin update versi tanpa kehilangan data
+   
+2. **Reinstall** - Keep data, reset config & binary
+   - Gunakan jika ada masalah config tapi ingin keep data
+   
+3. **Fresh Install** - Delete everything & start fresh
+   - Gunakan jika ingin mulai dari awal (data akan dihapus!)
+
 ### Cannot access localhost:port
 
 ```bash
 # Check if server is running
-ps aux | grep cute-finance  # Linux
-tasklist | find cute-finance  # Windows
+ps aux | grep cute-finance
 
 # Check port
-netstat -tuln | grep <port>  # Linux
-netstat -ano | findstr :<port>  # Windows
+netstat -tuln | grep <port>
 
 # Restart server
-./cute-finance  # Linux
-cute-finance.exe  # Windows
+./cute-finance
 ```
 
 ### Login not working
 
 ```bash
 # Check database
-ls -la data/cutefinance.db  # Linux
-dir data\cutefinance.db  # Windows
+ls -la data/cutefinance.db
 
 # Check logs
-./cute-finance 2>&1 | tee server.log  # Linux
+./cute-finance 2>&1 | tee server.log
 ```
 
 ### Build errors
 
 ```bash
 # Clean and rebuild
-rm -f cute-finance go.sum  # Linux
-del cute-finance.exe go.sum  # Windows
-
+rm -f cute-finance go.sum
 go mod download
 go mod tidy
 go build -o cute-finance ./cmd/server
 ```
 
-### Windows: Binary blocked by SmartScreen
+### Service won't start
 
-1. Right-click `cute-finance-windows-amd64.exe`
-2. Properties
-3. Check "Unblock"
-4. Apply
+```bash
+# Check logs
+sudo journalctl -u cutefinance -n 50
+
+# Check config
+cat data/config.json
+
+# Restart service
+sudo systemctl restart cutefinance
+```
 
 ## 🤝 Contributing
 
@@ -497,7 +495,7 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## 📊 Version History
 
-- **v2.0.0** (2024) - Authentication, multi-device, cross-platform
+- **v2.0.0** (2024) - Authentication, multi-device, cross-platform, smart installer
 - **v1.0.0** (2024) - Initial release
 
 ---
