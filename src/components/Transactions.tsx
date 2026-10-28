@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { UserProfile, Transaction, AccountType } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import {
   formatCurrency,
   getMonthTransactions,
@@ -7,7 +8,6 @@ import {
   CATEGORY_COLORS,
   CATEGORY_LABELS,
   CATEGORY_ICONS,
-  deleteTransaction,
 } from '../store';
 
 interface TransactionsProps {
@@ -23,14 +23,17 @@ const accountLabels: Record<AccountType, { label: string; icon: string; color: s
 };
 
 export const Transactions: React.FC<TransactionsProps> = ({ profile, transactions, onUpdate }) => {
+  const { token } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<AccountType | 'all'>('all');
   const [selectedMonth] = useState(getCurrentMonthKey());
   const [swipedId, setSwipedId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Transaction | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const touchStartX = useRef(0);
   const touchCurrentX = useRef(0);
 
   const monthTransactions = useMemo(() => {
-    let txns = getMonthTransactions(transactions, selectedMonth);
+    let txns = transactions.filter(t => t.date.startsWith(selectedMonth));
     if (selectedAccount !== 'all') {
       txns = txns.filter(t => t.account === selectedAccount);
     }
@@ -62,10 +65,32 @@ export const Transactions: React.FC<TransactionsProps> = ({ profile, transaction
     }
   };
 
-  const handleDelete = (id: string) => {
-    deleteTransaction(id);
+  const handleDeleteRequest = (transaction: Transaction) => {
+    setDeleteConfirm(transaction);
     setSwipedId(null);
-    onUpdate();
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
+    
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/transactions/${deleteConfirm.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': token || '' },
+      });
+
+      if (response.ok) {
+        setDeleteConfirm(null);
+        onUpdate();
+      } else {
+        alert('Failed to delete transaction');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete transaction');
+    }
+    setDeleting(false);
   };
 
   const groupByDate = (txns: Transaction[]) => {
@@ -138,6 +163,13 @@ export const Transactions: React.FC<TransactionsProps> = ({ profile, transaction
         ))}
       </div>
 
+      {/* Swipe hint */}
+      {groupedTransactions.length > 0 && (
+        <p className="text-xs text-cute-brown/40 text-center mb-3">
+          👈 Swipe left on transaction to delete
+        </p>
+      )}
+
       {/* Transaction List */}
       {groupedTransactions.length === 0 ? (
         <div className="text-center py-12">
@@ -156,7 +188,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ profile, transaction
                     {/* Swipe actions background */}
                     <div className="absolute inset-0 flex justify-end">
                       <button
-                        onClick={() => handleDelete(t.id)}
+                        onClick={() => handleDeleteRequest(t)}
                         className="w-20 bg-red-400 flex items-center justify-center text-white font-bold text-sm"
                       >
                         Delete
@@ -201,6 +233,75 @@ export const Transactions: React.FC<TransactionsProps> = ({ profile, transaction
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="text-center mb-4">
+              <div className="text-5xl mb-3">⚠️</div>
+              <h3 className="text-lg font-extrabold text-cute-brown">Delete Transaction?</h3>
+              <p className="text-sm text-cute-brown/60 mt-2">
+                This action cannot be undone.
+              </p>
+            </div>
+
+            {/* Transaction Preview */}
+            <div className="bg-gray-50 rounded-2xl p-4 mb-5">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
+                  style={{ backgroundColor: `${CATEGORY_COLORS[deleteConfirm.category]}30` }}
+                >
+                  {CATEGORY_ICONS[deleteConfirm.category]}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-cute-brown">
+                    {CATEGORY_LABELS[deleteConfirm.category]}
+                  </p>
+                  <p className="text-xs text-cute-brown/50">
+                    {deleteConfirm.date} • {accountLabels[deleteConfirm.account].label}
+                  </p>
+                </div>
+                <span className={`text-sm font-bold ${
+                  deleteConfirm.type === 'income' ? 'text-green-500' : 'text-cute-brown'
+                }`}>
+                  {deleteConfirm.type === 'income' ? '+' : '-'}
+                  {formatCurrency(deleteConfirm.amount, profile.currency)}
+                </span>
+              </div>
+              {deleteConfirm.note && (
+                <p className="text-xs text-cute-brown/50 mt-2">Note: {deleteConfirm.note}</p>
+              )}
+            </div>
+
+            {/* Warning */}
+            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-3 mb-5">
+              <p className="text-xs text-yellow-700 font-semibold">
+                ⚠️ Warning: This will permanently delete this {deleteConfirm.type} record.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleting}
+                className="flex-1 py-3 rounded-xl bg-gray-100 text-cute-brown/60 font-bold text-sm active:scale-95 transition-transform"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="flex-1 py-3 rounded-xl bg-red-400 text-white font-bold text-sm active:scale-95 transition-transform"
+              >
+                {deleting ? 'Deleting...' : 'Delete 🗑️'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

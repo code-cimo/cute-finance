@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import confetti from 'canvas-confetti';
 import { UserProfile, Transaction, CategoryType, AccountType } from '../types';
-import { addTransaction, CATEGORY_COLORS, CATEGORY_LABELS, CATEGORY_ICONS, formatCurrency } from '../store';
+import { useAuth } from '../contexts/AuthContext';
+import { CATEGORY_LABELS, CATEGORY_ICONS, formatCurrency } from '../store';
 
 interface AddTransactionProps {
   profile: UserProfile;
@@ -23,17 +24,21 @@ const accounts: { type: AccountType; label: string; icon: string }[] = [
 ];
 
 export const AddTransaction: React.FC<AddTransactionProps> = ({ profile, isOpen, onClose, onAdded }) => {
+  const { token } = useAuth();
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<CategoryType>('food');
   const [account, setAccount] = useState<AccountType>('cash');
   const [note, setNote] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!amount || parseFloat(amount) <= 0) return;
+
+    setSaving(true);
 
     const transaction: Transaction = {
       id: uuidv4(),
@@ -43,27 +48,47 @@ export const AddTransaction: React.FC<AddTransactionProps> = ({ profile, isOpen,
       note,
       date: new Date().toISOString().split('T')[0],
       type,
+      userId: 0, // Will be set by server
     };
 
-    addTransaction(transaction);
-    setShowSuccess(true);
-    
-    // Confetti celebration!
-    confetti({
-      particleCount: 50,
-      spread: 60,
-      origin: { y: 0.7 },
-      colors: ['#F8BBD0', '#FFF9C4', '#C8E6C9', '#BBDEFB', '#E1BEE7'],
-    });
-    
-    setTimeout(() => {
-      setShowSuccess(false);
-      setAmount('');
-      setNote('');
-      setCategory('food');
-      onAdded();
-      onClose();
-    }, 800);
+    try {
+      const response = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token || '',
+        },
+        body: JSON.stringify(transaction),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save transaction');
+      }
+
+      setShowSuccess(true);
+      
+      // Confetti celebration!
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.7 },
+        colors: ['#F8BBD0', '#FFF9C4', '#C8E6C9', '#BBDEFB', '#E1BEE7'],
+      });
+      
+      setTimeout(() => {
+        setShowSuccess(false);
+        setAmount('');
+        setNote('');
+        setCategory('food');
+        onAdded();
+        onClose();
+      }, 800);
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('Failed to save transaction. Please try again.');
+    }
+
+    setSaving(false);
   };
 
   return (
@@ -205,14 +230,14 @@ export const AddTransaction: React.FC<AddTransactionProps> = ({ profile, isOpen,
           {/* Submit Button */}
           <button
             onClick={handleSubmit}
-            disabled={!amount || parseFloat(amount) <= 0}
+            disabled={!amount || parseFloat(amount) <= 0 || saving}
             className={`w-full py-4 rounded-2xl font-bold text-base text-white shadow-lg active:scale-95 transition-all ${
-              amount && parseFloat(amount) > 0
+              amount && parseFloat(amount) > 0 && !saving
                 ? type === 'expense' ? 'bg-pastel-pink' : 'bg-pastel-mint'
                 : 'bg-gray-300'
             }`}
           >
-            {type === 'expense' ? '💸 Record Expense' : '💰 Record Income'}
+            {saving ? 'Saving...' : type === 'expense' ? '💸 Record Expense' : '💰 Record Income'}
           </button>
         </div>
       </div>

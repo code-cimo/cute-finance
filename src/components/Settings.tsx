@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { UserProfile, MascotType, Currency, BudgetRule } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import { Mascot } from './Mascot';
-import { saveProfile, calculateBudgetAllocation, saveMonthlyBudget, getCurrentMonthKey } from '../store';
+import { calculateBudgetAllocation, getCurrentMonthKey } from '../store';
 
 interface SettingsProps {
   profile: UserProfile;
@@ -9,16 +10,16 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate }) => {
+  const { logout, username } = useAuth();
   const [editProfile, setEditProfile] = useState(false);
   const [newMascot, setNewMascot] = useState<MascotType>(profile.mascot);
   const [newCurrency, setNewCurrency] = useState<Currency>(profile.currency);
   const [newPayday, setNewPayday] = useState(profile.paydayDate);
   const [newBudgetRule, setNewBudgetRule] = useState<BudgetRule>(profile.budgetRule);
   const [newIncome, setNewIncome] = useState(profile.monthlyIncome.toString());
-  const [showExport, setShowExport] = useState(false);
-  const [exportData, setExportData] = useState('');
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const updatedProfile: UserProfile = {
       ...profile,
       mascot: newMascot,
@@ -27,37 +28,49 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate }) => {
       budgetRule: newBudgetRule,
       monthlyIncome: parseFloat(newIncome) || 0,
     };
-    saveProfile(updatedProfile);
 
-    // Recalculate budget
-    const budgetCategories = calculateBudgetAllocation(updatedProfile.monthlyIncome, newBudgetRule);
-    saveMonthlyBudget({
-      month: getCurrentMonthKey(),
-      categories: budgetCategories,
-      totalIncome: updatedProfile.monthlyIncome,
-      totalSpent: 0,
-    });
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': localStorage.getItem('auth_token') || '',
+        },
+        body: JSON.stringify(updatedProfile),
+      });
 
-    onUpdate(updatedProfile);
-    setEditProfile(false);
-  };
-
-  const handleExport = () => {
-    const data = {
-      profile,
-      transactions: JSON.parse(localStorage.getItem('cute-finance-transactions') || '[]'),
-      budget: JSON.parse(localStorage.getItem('cute-finance-budgets') || 'null'),
-      exportDate: new Date().toISOString(),
-    };
-    setExportData(JSON.stringify(data, null, 2));
-    setShowExport(true);
-  };
-
-  const handleReset = () => {
-    if (confirm('Are you sure? This will delete ALL data!')) {
-      localStorage.clear();
-      window.location.reload();
+      if (response.ok) {
+        onUpdate(updatedProfile);
+        setEditProfile(false);
+      }
+    } catch (error) {
+      console.error('Save error:', error);
     }
+  };
+
+  const handleExport = async () => {
+    try {
+      const response = await fetch('/api/export', {
+        headers: { 'Authorization': localStorage.getItem('auth_token') || '' },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cute-finance-export-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   const mascots: { type: MascotType; name: string }[] = [
@@ -79,15 +92,15 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate }) => {
     <div className="px-4 pb-4 animate-fade-in">
       <h1 className="text-xl font-extrabold text-cute-brown mb-4 pt-2">Settings ⚙️</h1>
 
-      {/* Profile Card */}
+      {/* User Info */}
       <div className="bg-white rounded-3xl p-5 shadow-sm mb-5">
         <div className="flex items-center gap-4 mb-4">
           <Mascot type={profile.mascot} size={60} animate />
           <div>
-            <h2 className="font-bold text-cute-brown text-lg">
-              {mascots.find(m => m.type === profile.mascot)?.name}
-            </h2>
-            <p className="text-sm text-cute-brown/60">Your finance buddy</p>
+            <h2 className="font-bold text-cute-brown text-lg">{username || 'User'}</h2>
+            <p className="text-sm text-cute-brown/60">
+              {mascots.find(m => m.type === profile.mascot)?.name} companion
+            </p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -227,30 +240,6 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate }) => {
         <h3 className="font-bold text-cute-brown mb-4">Data Management 📦</h3>
         <div className="space-y-3">
           <button
-            onClick={() => {
-              const transactions = JSON.parse(localStorage.getItem('cute-finance-transactions') || '[]');
-              if (transactions.length === 0) {
-                alert('No transactions to export!');
-                return;
-              }
-              const headers = 'Date,Type,Category,Amount,Account,Note\n';
-              const rows = transactions.map((t: any) => 
-                `${t.date},${t.type},${t.category},${t.amount},${t.account},"${t.note || ''}"`
-              ).join('\n');
-              const csv = headers + rows;
-              const blob = new Blob([csv], { type: 'text/csv' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `cute-finance-${new Date().toISOString().split('T')[0]}.csv`;
-              a.click();
-              URL.revokeObjectURL(url);
-            }}
-            className="w-full py-3 rounded-xl bg-pastel-mint/30 text-cute-brown font-bold text-sm active:scale-95 transition-transform"
-          >
-            📊 Export Transactions (CSV)
-          </button>
-          <button
             onClick={handleExport}
             className="w-full py-3 rounded-xl bg-pastel-yellow/40 text-cute-brown font-bold text-sm active:scale-95 transition-transform"
           >
@@ -261,18 +250,26 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate }) => {
               const input = document.createElement('input');
               input.type = 'file';
               input.accept = '.json';
-              input.onchange = (e) => {
+              input.onchange = async (e) => {
                 const file = (e.target as HTMLInputElement).files?.[0];
                 if (file) {
                   const reader = new FileReader();
-                  reader.onload = (ev) => {
+                  reader.onload = async (ev) => {
                     try {
                       const data = JSON.parse(ev.target?.result as string);
-                      if (data.profile) saveProfile(data.profile);
-                      if (data.transactions) localStorage.setItem('cute-finance-transactions', JSON.stringify(data.transactions));
-                      if (data.budget) localStorage.setItem('cute-finance-budgets', JSON.stringify(data.budget));
-                      alert('Data imported successfully! 🎉');
-                      window.location.reload();
+                      // Import to server
+                      const response = await fetch('/api/import', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': localStorage.getItem('auth_token') || '',
+                        },
+                        body: JSON.stringify(data),
+                      });
+                      if (response.ok) {
+                        alert('Data imported successfully! 🎉');
+                        window.location.reload();
+                      }
                     } catch {
                       alert('Invalid file format');
                     }
@@ -286,41 +283,48 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate }) => {
           >
             📥 Import Data (JSON)
           </button>
-          <button
-            onClick={handleReset}
-            className="w-full py-3 rounded-xl bg-red-50 text-red-400 font-bold text-sm active:scale-95 transition-transform"
-          >
-            🗑️ Reset All Data
-          </button>
         </div>
       </div>
 
-      {/* Export Modal */}
-      {showExport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setShowExport(false)} />
-          <div className="relative bg-white rounded-3xl p-5 w-full max-w-sm animate-slide-up max-h-[80vh] overflow-y-auto">
-            <h3 className="font-bold text-cute-brown mb-3">Export Data</h3>
-            <textarea
-              readOnly
-              value={exportData}
-              className="w-full h-48 bg-gray-50 rounded-xl p-3 text-xs font-mono text-cute-brown/70 resize-none"
-            />
-            <div className="flex gap-3 mt-4">
+      {/* Logout */}
+      <button
+        onClick={() => setShowLogoutConfirm(true)}
+        className="w-full bg-white rounded-2xl p-4 shadow-sm mb-5 flex items-center justify-between active:scale-[0.98] transition-transform"
+      >
+        <span className="font-bold text-red-400">🚪 Logout</span>
+        <span className="text-cute-brown/40">→</span>
+      </button>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="text-center mb-4">
+              <div className="text-5xl mb-3">🚪</div>
+              <h3 className="text-lg font-extrabold text-cute-brown">Logout?</h3>
+              <p className="text-sm text-cute-brown/60 mt-2">
+                You will need to login again to access your data.
+              </p>
+            </div>
+
+            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-3 mb-5">
+              <p className="text-xs text-yellow-700 font-semibold">
+                ⚠️ Your data is safe on the server. You can login anytime.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(exportData);
-                  alert('Copied to clipboard!');
-                }}
-                className="flex-1 py-3 rounded-xl bg-pastel-blue/50 text-cute-brown font-bold text-sm active:scale-95"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-3 rounded-xl bg-gray-100 text-cute-brown/60 font-bold text-sm active:scale-95 transition-transform"
               >
-                📋 Copy
+                Cancel
               </button>
               <button
-                onClick={() => setShowExport(false)}
-                className="flex-1 py-3 rounded-xl bg-gray-100 text-cute-brown/60 font-bold text-sm active:scale-95"
+                onClick={handleLogout}
+                className="flex-1 py-3 rounded-xl bg-red-400 text-white font-bold text-sm active:scale-95 transition-transform"
               >
-                Close
+                Logout 🚪
               </button>
             </div>
           </div>
@@ -330,10 +334,10 @@ export const Settings: React.FC<SettingsProps> = ({ profile, onUpdate }) => {
       {/* About */}
       <div className="bg-gradient-to-br from-pastel-pink/20 to-pastel-yellow/20 rounded-3xl p-5 text-center">
         <Mascot type={profile.mascot} size={50} animate />
-        <h3 className="font-bold text-cute-brown mt-2">CuteFinance v1.0</h3>
+        <h3 className="font-bold text-cute-brown mt-2">CuteFinance v2.0</h3>
         <p className="text-xs text-cute-brown/50 mt-1">Your adorable finance companion 🐾</p>
         <p className="text-[10px] text-cute-brown/30 mt-2">
-          Self-hosted PWA • Made with love
+          Free to use • No cost • Your data is safe
         </p>
       </div>
     </div>

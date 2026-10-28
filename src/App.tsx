@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { UserProfile, PageType, Transaction } from './types';
 import { getProfile, getTransactions, saveMonthlyBudget, calculateBudgetAllocation, getCurrentMonthKey } from './store';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthPage } from './components/AuthPage';
 import { SetupWizard } from './components/SetupWizard';
 import { Dashboard } from './components/Dashboard';
 import { Transactions } from './components/Transactions';
@@ -9,10 +11,10 @@ import { Settings } from './components/Settings';
 import { BottomNav } from './components/BottomNav';
 import { FAB } from './components/FAB';
 import { AddTransaction } from './components/AddTransaction';
-import { PaydayNotification, requestNotificationPermission } from './components/Notification';
-import { InstallPrompt } from './components/InstallPrompt';
+import { PaydayNotification } from './components/Notification';
 
-function App() {
+function AppContent() {
+  const { isAuthenticated, token } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
@@ -25,81 +27,115 @@ function App() {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
 
-    // Request notification permission
-    requestNotificationPermission();
-
-    // Load data
-    const savedProfile = getProfile();
-    const savedTransactions = getTransactions();
-    
-    if (savedProfile && savedProfile.setupComplete) {
-      setProfile(savedProfile);
-      
-      // Initialize budget if not exists
-      const existingBudget = localStorage.getItem('cute-finance-budgets');
-      if (!existingBudget && savedProfile.monthlyIncome > 0) {
-        const budgetCategories = calculateBudgetAllocation(savedProfile.monthlyIncome, savedProfile.budgetRule);
-        saveMonthlyBudget({
-          month: getCurrentMonthKey(),
-          categories: budgetCategories,
-          totalIncome: savedProfile.monthlyIncome,
-          totalSpent: 0,
-        });
-      }
+    if (isAuthenticated) {
+      // Load data from server
+      loadData();
+    } else {
+      setLoading(false);
     }
-    
-    setTransactions(savedTransactions);
+  }, [isAuthenticated]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      // Load profile
+      const profileRes = await fetch('/api/profile', {
+        headers: { 'Authorization': token || '' },
+      });
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        if (profileData) {
+          setProfile(profileData);
+        }
+      }
+
+      // Load transactions
+      const txRes = await fetch('/api/transactions', {
+        headers: { 'Authorization': token || '' },
+      });
+      if (txRes.ok) {
+        const txData = await txRes.json();
+        setTransactions(txData || []);
+      }
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    }
     setLoading(false);
-  }, []);
+  };
 
-  const refreshTransactions = useCallback(() => {
-    setTransactions(getTransactions());
-  }, []);
+  const refreshTransactions = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const txRes = await fetch('/api/transactions', {
+        headers: { 'Authorization': token || '' },
+      });
+      if (txRes.ok) {
+        const txData = await txRes.json();
+        setTransactions(txData || []);
+      }
+    } catch (error) {
+      console.error('Failed to refresh transactions:', error);
+    }
+  }, [isAuthenticated, token]);
 
-  const handleSetupComplete = (newProfile: UserProfile) => {
-    setProfile(newProfile);
-    // Initialize budget
-    const budgetCategories = calculateBudgetAllocation(newProfile.monthlyIncome, newProfile.budgetRule);
-    saveMonthlyBudget({
-      month: getCurrentMonthKey(),
-      categories: budgetCategories,
-      totalIncome: newProfile.monthlyIncome,
-      totalSpent: 0,
-    });
-    
-    // Add sample transactions for demo
-    const today = new Date();
-    const sampleTransactions = [
-      { id: crypto.randomUUID(), amount: 50000, category: 'food' as const, account: 'ewallet' as const, note: 'Lunch at café', date: today.toISOString().split('T')[0], type: 'expense' as const },
-      { id: crypto.randomUUID(), amount: 25000, category: 'drink' as const, account: 'cash' as const, note: 'Coffee & milk tea', date: today.toISOString().split('T')[0], type: 'expense' as const },
-      { id: crypto.randomUUID(), amount: 150000, category: 'bills' as const, account: 'bank' as const, note: 'Electricity bill', date: new Date(today.getTime() - 86400000).toISOString().split('T')[0], type: 'expense' as const },
-      { id: crypto.randomUUID(), amount: 35000, category: 'transport' as const, account: 'ewallet' as const, note: 'Grab ride', date: new Date(today.getTime() - 86400000).toISOString().split('T')[0], type: 'expense' as const },
-      { id: crypto.randomUUID(), amount: 75000, category: 'dessert' as const, account: 'cash' as const, note: 'Birthday cake', date: new Date(today.getTime() - 172800000).toISOString().split('T')[0], type: 'expense' as const },
-      { id: crypto.randomUUID(), amount: 200000, category: 'shopping' as const, account: 'ewallet' as const, note: 'New clothes', date: new Date(today.getTime() - 259200000).toISOString().split('T')[0], type: 'expense' as const },
-      { id: crypto.randomUUID(), amount: 5000000, category: 'bonus' as const, account: 'bank' as const, note: 'Monthly salary', date: new Date(today.getTime() - 432000000).toISOString().split('T')[0], type: 'income' as const },
-    ];
-    
-    const existing = JSON.parse(localStorage.getItem('cute-finance-transactions') || '[]');
-    localStorage.setItem('cute-finance-transactions', JSON.stringify([...sampleTransactions, ...existing]));
-    setTransactions([...sampleTransactions, ...existing]);
+  const handleSetupComplete = async (newProfile: UserProfile) => {
+    try {
+      // Save profile to server
+      await fetch('/api/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token || '',
+        },
+        body: JSON.stringify(newProfile),
+      });
+
+      setProfile(newProfile);
+      
+      // Initialize budget
+      const budgetCategories = calculateBudgetAllocation(newProfile.monthlyIncome, newProfile.budgetRule);
+      const budget = {
+        month: getCurrentMonthKey(),
+        categories: budgetCategories,
+        totalIncome: newProfile.monthlyIncome,
+        totalSpent: 0,
+      };
+
+      await fetch('/api/budget', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token || '',
+        },
+        body: JSON.stringify(budget),
+      });
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+    }
   };
 
   const handleProfileUpdate = (updatedProfile: UserProfile) => {
     setProfile(updatedProfile);
   };
 
+  // Show auth page if not authenticated
+  if (!isAuthenticated) {
+    return <AuthPage />;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-pastel-yellow to-white flex items-center justify-center">
         <div className="text-center animate-pulse-soft">
           <div className="text-5xl mb-4">🐾</div>
-          <p className="text-cute-brown font-bold text-lg">Loading CuteFinance...</p>
+          <p className="text-cute-brown font-bold text-lg">Loading...</p>
         </div>
       </div>
     );
   }
 
-  // Show setup wizard if not completed
+  // Show setup wizard if profile not complete
   if (!profile || !profile.setupComplete) {
     return <SetupWizard onComplete={handleSetupComplete} />;
   }
@@ -144,10 +180,15 @@ function App() {
 
       {/* Payday Notification */}
       <PaydayNotification profile={profile} />
-
-      {/* Install Prompt */}
-      <InstallPrompt />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
